@@ -14,7 +14,7 @@ I recommend inspecting the [host.sh](host.sh) script before running it. It's a g
 
 The script will do the following (manual steps in bold, everything else is automated):
 
-- Create a [Podman](https://podman.io) image with all necessary dependencies
+- Create a [Podman](https://podman.io) container template (image) with all necessary dependencies
 
 - Get Padavan sources
 
