@@ -2,17 +2,19 @@
 
 ## Padavan builder
 
-Automated Padavan firmware builder. Can be run on Debian or Ubuntu, including in Windows subsystem for Linux (WSL).
+Automated Padavan firmware builder. Runs on Debian or Ubuntu, including in Windows Subsystem for Linux (WSL).
 
-Usage:
+### Usage
 
 ```sh
 wget -qO- https://github.com/shvchk/padavan-builder/raw/main/host.sh | bash
 ```
 
+I recommend inspecting the [host.sh](host.sh) script before running it. It's a good practice before running any code on your machine, especially remote code.
+
 The script will do the following (manual steps in bold, everything else is automated):
 
-- Create Podman image with all necessary dependencies
+- Create a [Podman](https://podman.io) image with all necessary dependencies
 
 - Get Padavan sources
 
@@ -20,12 +22,12 @@ The script will do the following (manual steps in bold, everything else is autom
 
 - **Ask you to select your router model**
 
-  Model list can be filtered with text input. Use `↑` `↓` arrows to select your model, press `Enter` to confirm.
+  The model list can be filtered with text input. Use `↑` `↓` arrows to select your model, press `Enter` to confirm.
 
 - **Open the build config file in a text editor** ([micro](https://micro-editor.github.io))
 
-  Edit config to your liking: uncomment (remove `#` at the beginning of the line) features you need, comment features you don't.  
-  Save (`Ctrl + S`) and close (`Ctrl + Q`) the file when finished.  
+  Edit config to your liking: uncomment (remove `#` at the beginning of the line) features you need, comment features you don't. Save (`Ctrl + S`) and close (`Ctrl + Q`) the file when finished.
+
   Text editor fully supports mouse, clipboard and common editing and navigation methods: `Ctrl + C`, `Ctrl + V`, `Ctrl + X`, `Ctrl + Z`, `Ctrl + F`, etc.
 
 - Build the firmware in a temporary Podman container
@@ -43,7 +45,7 @@ To rebuild firmware, run:
 podman run --rm --ulimit nofile=9000 -it -v "$HOME":/tmp/trx padavan bash /opt/container.sh
 ```
 
-This will start from selecting your router model. Built `trx` will be in your in your Linux home directory. If you use WSL, you can then move `trx` to `C:/Users/Public/Downloads/padavan`:
+This will start with selecting your router model. Built `trx` will be in your Linux home directory. If you use WSL, you can then move `trx` to `C:/Users/Public/Downloads/padavan`:
 
 ```sh
 mv "$HOME"/*trx /mnt/c/Users/Public/Downloads/padavan
@@ -58,17 +60,18 @@ To delete everything, just run:
 podman stop -a; podman system prune -af
 ```
 
-The only thing left would be the podman package itself, all data will be deleted.
+The only thing left would be the `podman` package itself, all data will be deleted.
 
 
 ### Use another repository or branch
 
-By default, the script uses [gitlab.com/hadzhioglu/padavan-ng](https://gitlab.com/hadzhioglu/padavan-ng) repository and `master` branch. To use other repository and branch, you can pass it as a parameter to the script: `host.sh <repo_url> <branch>`. When running via pipe, as we did initially, parameters can be passed like this:
+By default, the script uses [gitlab.com/hadzhioglu/padavan-ng](https://gitlab.com/hadzhioglu/padavan-ng) repository and `master` branch. To use another repository and branch, you can pass it as a parameter to the script: `host.sh <repo_url> <branch>`. When running via a pipe, as we did initially, parameters can be passed like this:
 
 ```sh
-wget -qO- https://github.com/shvchk/padavan-builder/raw/main/host.sh | bash -s -- https://example.com/anonymous/padavan dev
+wget -qO- https://github.com/shvchk/padavan-builder/raw/main/host.sh | \
+bash -s -- https://example.com/anonymous/padavan dev
 ```
 
 In the example above, we use `https://example.com/anonymous/padavan` repo and `dev` branch.
 
-Repository should contain `Dockerfile`.
+The repository should contain `Dockerfile`.
