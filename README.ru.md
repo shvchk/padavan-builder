@@ -57,7 +57,7 @@ mv "$HOME"/*trx /mnt/c/Users/Public/Downloads/padavan
 Чтобы всё удалить, выполните:
 
 ```sh
-podman stop -a; podman system prune -af
+podman system reset -f
 ```
 
 Останется только сам пакет `podman`, а все данные будут удалены.
