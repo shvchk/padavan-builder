@@ -26,9 +26,11 @@ The script will do the following (manual steps in bold, everything else is autom
 
 - **Open the build config file in a text editor** ([micro](https://micro-editor.github.io))
 
-  Edit config to your liking: uncomment (remove `#` at the beginning of the line) features you need, comment features you don't. Save (`Ctrl + S`) and close (`Ctrl + Q`) the file when finished.
+  Edit config to your liking: uncomment (remove `#` at the beginning of the line) features you need, comment features you don't.
 
   Text editor fully supports mouse, clipboard and common editing and navigation methods: `Ctrl + C`, `Ctrl + V`, `Ctrl + X`, `Ctrl + Z`, `Ctrl + F`, etc.
+
+  Save (`Ctrl + S`) and close (`Ctrl + Q`) the file when finished.
 
 - Build the firmware in a temporary Podman container
 
