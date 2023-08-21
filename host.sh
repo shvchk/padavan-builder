@@ -4,6 +4,8 @@ set -euo pipefail
 
 dest_dir="$HOME"
 win_dest_dir="/mnt/c/Users/Public/Downloads"
+repo_url="${1:-https://gitlab.com/hadzhioglu/padavan-ng}"
+branch="${2:-master}"
 
 # text decoration utilities
 normal=$(tput sgr0)
@@ -16,8 +18,9 @@ _echo() { echo -e "${*}${normal}"; } # unset formatting after outputting
 tmp_dir="$(mktemp -d)"
 log_file="${tmp_dir}/padavan-builder.log"
 log_follow_reminder=" You can follow the log live in another terminal with ${accent} tail -f '$log_file' "
+_log() { echo -e "$(date +'%Y.%m.%d %H.%M.%S') - ${*}" &>> "$log_file"; }
 
-echo "Starting build $(date +'%Y.%m.%d %H.%M.%S')" > "$log_file"
+echo "$(date +'%Y.%m.%d %H.%M.%S') - Starting" > "$log_file"
 _echo "\n${info_msg} Log file: ${normal}${bold} ${log_file}"
 _echo "$log_follow_reminder"
 
@@ -32,21 +35,21 @@ handle_exit() {
 
 trap handle_exit EXIT
 
-repo_url="${1:-https://gitlab.com/hadzhioglu/padavan-ng}"
-branch="${2:-master}"
-dockerfile="$(wget -qO- "${repo_url}/raw/${branch}/Dockerfile")"
-
 _echo "\n${info_msg} Installing podman and utilities "
+_log  "Installing podman and utilities"
 sudo apt update &>> "$log_file"
 sudo apt install fzf micro podman -y &>> "$log_file"
 
 _echo "\n${info_msg} Creating a container image and building the toolchain "
+_log  "Creating a container image and building the toolchain"
 _echo " This will take a while, usually 20-60 minutes"
 _echo "$log_follow_reminder"
-podman build --ulimit nofile=9000 -t padavan - <<< "$dockerfile" &>> "$log_file"
+podman build --ulimit nofile=9000 --squash -t padavan "${repo_url}/raw/${branch}/Dockerfile" &>> "$log_file"
 _echo " Done"
+_log  " Done"
 
 _echo "\n${info_msg} Starting container to build firmware "
+_log  "Starting container to build firmware"
 podman run --ulimit nofile=9000 -dt -v "$dest_dir":/tmp/trx -w /opt/padavan-ng/trunk --name padavan padavan &>> "$log_file"
 
 config_selection_header=$(printf "%s\n" "${warn_msg} Select your router model ${normal}" \
@@ -90,11 +93,13 @@ podman cp "${tmp_dir}/padavan-build.config" padavan:.config
 _echo " Build config backup: ${tmp_dir}/padavan-build.config"
 
 _echo "\n${info_msg} Building firmware "
+_log  "Building firmware"
 _echo " This will take a while, usually 10-30 minutes"
 _echo "$log_follow_reminder"
 podman exec padavan ./clear_tree.sh &>> "$log_file"
 podman exec padavan ./build_firmware.sh &>> "$log_file"
 _echo " Done"
+_log  " Done"
 
 _echo " Copying firmware to $dest_dir"
 podman exec padavan sh -c "cp images/*trx /tmp/trx"
@@ -107,3 +112,4 @@ if [[ -f /proc/sys/fs/binfmt_misc/WSLInterop && -w $win_dest_dir ]]; then
 fi
 
 _echo "\n${info_msg} All done "
+_log  " All done"
