@@ -22,8 +22,12 @@ _echo "\n${info_msg} Log file: ${normal}${bold} ${log_file}"
 _echo "$log_follow_reminder"
 
 handle_exit() {
+  if [[ $? != 0 ]]; then
+    _echo "\n${warn_msg} Error occured, please check log: ${normal}${bold} ${log_file}"
+    _echo " Failed command: $BASH_COMMAND"
+  fi
+
   podman rm -f padavan &>> "$log_file"
-  _echo "\n${info_msg} Log file: ${normal} ${bold}${log_file}"
 }
 
 trap handle_exit EXIT
@@ -45,13 +49,13 @@ _echo " Done"
 _echo "\n${info_msg} Starting container to build firmware "
 podman run --ulimit nofile=9000 -dt -v "$dest_dir":/tmp/trx -w /opt/padavan-ng/trunk --name padavan padavan &>> "$log_file"
 
-config_selection_header=$(printf "%s\n" "${warn_msg} Select config ${normal}" \
+config_selection_header=$(printf "%s\n" "${warn_msg} Select your router model ${normal}" \
                                         " Filter by entering text" \
                                         " Select by mouse or arrow keys" \
                                         " Double click or Enter to confirm")
 
 config_file="$(podman exec padavan sh -c "find configs/templates/*/*config" | \
-               fzf +m -e -d / --with-nth 3.. --reverse --no-info --header-first --header "$config_selection_header")"
+               fzf +m -e -d / --with-nth 3.. --reverse --no-info --bind=esc:ignore --header-first --header "$config_selection_header")"
 
 podman cp padavan:"$config_file" "${tmp_dir}/padavan-build.config"
 
