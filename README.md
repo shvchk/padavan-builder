@@ -41,17 +41,7 @@ The script will do the following (manual steps in bold, everything else is autom
 
 The script won't delete Podman image with toolchain after building the firmware, so you can reuse it.
 
-To rebuild firmware, run:
-
-```sh
-podman run --rm --ulimit nofile=9000 -it -v "$HOME":/tmp/trx padavan bash /opt/container.sh
-```
-
-This will start with selecting your router model. Built `trx` will be in your Linux home directory. If you use WSL, you can then move `trx` to `C:/Users/Public/Downloads/padavan`:
-
-```sh
-mv "$HOME"/*trx /mnt/c/Users/Public/Downloads/padavan
-```
+To rebuild firmware, just rerun the script as usual, it will detect existing image and ask you if you want to use it or delete and rebuild it.
 
 
 ### Clean / uninstall
