@@ -4,8 +4,9 @@ set -euo pipefail
 
 dest_dir="$HOME"
 win_dest_dir="/mnt/c/Users/Public/Downloads"
-repo_url="${1:-https://gitlab.com/hadzhioglu/padavan-ng}"
-branch="${2:-master}"
+repo_url="${1:-${PADAVAN_REPO:-https://gitlab.com/hadzhioglu/padavan-ng}}"
+branch="${2:-${PADAVAN_BRANCH:-master}}"
+containerfile="${PADAVAN_CONTAINERFILE:-${repo_url}/raw/${branch}/Dockerfile}"
 image_name="padavan-builder"
 
 # text decoration utilities
@@ -72,7 +73,7 @@ _build_image() {
   _echo " This will take a while, usually 20-60 minutes"
   _echo "$log_follow_reminder"
   podman rmi -f "$image_name"
-  podman build --ulimit nofile=9000 --squash -t "$image_name" "${repo_url}/raw/${branch}/Dockerfile" &>> "$log_file"
+  podman build --ulimit nofile=9000 --squash -t "$image_name" "$containerfile" &>> "$log_file"
   _echo " Done"
   _log  " Done"
 }

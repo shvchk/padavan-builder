@@ -78,15 +78,24 @@ podman system reset -f
 The only thing left would be the `podman` package itself, all data will be deleted.
 
 
-### Use another repository or branch
+### Use another repository, branch or Dockerfile / Containerfile
 
-By default, the script uses [gitlab.com/hadzhioglu/padavan-ng](https://gitlab.com/hadzhioglu/padavan-ng) repository and `master` branch. To use another repository and branch, you can pass it as a parameter to the script: `host.sh <repo_url> <branch>`. When running via a pipe, as we did initially, parameters can be passed like this:
+By default, the script uses [gitlab.com/hadzhioglu/padavan-ng](https://gitlab.com/hadzhioglu/padavan-ng) repository and `master` branch. To use another repository and branch, you can pass it as a parameter to the script: `host.sh <repo_url> <branch>` or use `PADAVAN_REPO` and `PADAVAN_BRANCH` environment variables. Passed parameters have priority over env vars. The repository should contain `Dockerfile`.
+
+When running via a pipe, as we did initially, alternative repository and branch can be set like this:
 
 ```sh
 wget -qO- https://github.com/shvchk/padavan-builder/raw/main/host.sh | \
 bash -s -- https://example.com/anonymous/padavan dev
 ```
 
-In the example above, we use `https://example.com/anonymous/padavan` repo and `dev` branch.
+or
 
-The repository should contain `Dockerfile`.
+```sh
+PADAVAN_REPO=https://example.com/anonymous/padavan \
+PADAVAN_BRANCH=dev \
+wget -qO- https://github.com/shvchk/padavan-builder/raw/main/host.sh | bash
+
+```
+
+You can also make script use any other Dockerfile / Containerfile with `PADAVAN_CONTAINERFILE` environment variable. This will override repo's Dockerfile.

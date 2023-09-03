@@ -78,15 +78,24 @@ podman system reset -f
 Останется только сам пакет `podman`, а все данные будут удалены.
 
 
-### Использование другого репозитория или ветки
+### Использование другого репозитория, ветки или Dockerfile / Containerfile
 
-По умолчанию скрипт использует репозиторий [gitlab.com/hadzhioglu/padavan-ng](https://gitlab.com/hadzhioglu/padavan-ng) и `master` ветку. Чтобы использовать другой репозиторий и ветку, можно передать их скрипту как параметр: `host.sh <ссылка_на_репозиторий> <ветка>`. При запуске через пайп, как мы изначально и делали, параметры можно передать так:
+По умолчанию скрипт использует репозиторий [gitlab.com/hadzhioglu/padavan-ng](https://gitlab.com/hadzhioglu/padavan-ng) и `master` ветку. Чтобы использовать другой репозиторий и ветку, можно передать их скрипту как параметр: `host.sh <ссылка_на_репозиторий> <ветка>` или использовать переменные окружения `PADAVAN_REPO` и `PADAVAN_BRANCH`. Переданные параметры имеют приоритет над переменными окружения. Репозиторий должен содержать `Dockerfile`.
+
+При запуске через пайп, как мы изначально и делали, другой репозиторий и ветку можно указать так:
 
 ```sh
 wget -qO- https://github.com/shvchk/padavan-builder/raw/main/host.sh | \
 bash -s -- https://example.com/anonymous/padavan dev
 ```
 
-В примере выше мы используем репозиторий `https://example.com/anonymous/padavan` и ветку `dev`.
+или
 
-Репозиторий должен содержать `Dockerfile`.
+```sh
+PADAVAN_REPO=https://example.com/anonymous/padavan \
+PADAVAN_BRANCH=dev \
+wget -qO- https://github.com/shvchk/padavan-builder/raw/main/host.sh | bash
+
+```
+
+Также можно указать скрипту использовать любой другой Dockerfile / Containerfile с помощью переменной окружения `PADAVAN_CONTAINERFILE`. Это будет иметь приоритет над Dockerfile репозитория.
