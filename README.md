@@ -24,8 +24,6 @@ Automated Padavan firmware builder. Runs on Debian or Ubuntu, including in Windo
   ![Build config editing](misc/screenshots/edit-config.webp)
 </details>
 
-<br/>
-
 **Video demo, ⏱️ ~3 min:**
 
 [![Video demo](misc/screenshots/video-preview.webp)](https://youtu.be/AX7YRaR9CBw)

@@ -24,8 +24,6 @@
   ![Редактирование конфига сборки](misc/screenshots/edit-config.webp)
 </details>
 
-<br/>
-
 **Видео, ⏱️ ~3 min:**
 
 [![Видео](misc/screenshots/video-preview.webp)](https://youtu.be/AX7YRaR9CBw)
