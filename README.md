@@ -66,9 +66,7 @@ The script will do the following (manual steps in bold, everything else is autom
 
 ### Reuse / rebuild
 
-The script won't delete Podman image with toolchain after building the firmware, so you can reuse it.
-
-To rebuild firmware, just rerun the script as usual, it will detect existing image and ask you if you want to use it or delete and rebuild it.
+The script won't delete Podman image with toolchain after building the firmware, so you can reuse it. Just run the script as usual, it will detect existing image and ask you if you want to use it or delete and rebuild it.
 
 
 ### Clean / uninstall
