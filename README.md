@@ -4,6 +4,33 @@
 
 Automated Padavan firmware builder. Runs on Debian or Ubuntu, including in Windows Subsystem for Linux (WSL).
 
+**Screenshots:**
+
+<details>
+  <summary>Full script output</summary>
+
+  ![Full script output](misc/screenshots/main.webp)
+</details>
+
+<details>
+  <summary>Build config selection</summary>
+
+  ![Build config selection](misc/screenshots/select-config.webp)
+</details>
+
+<details>
+  <summary>Build config editing</summary>
+
+  ![Build config editing](misc/screenshots/edit-config.webp)
+</details>
+
+<br/>
+
+**Video demo, ⏱️ ~3 min:**
+
+[![Video demo](misc/screenshots/video-preview.webp)](https://youtu.be/AX7YRaR9CBw)
+
+
 ### Usage
 
 ```sh

@@ -4,6 +4,33 @@
 
 Автоматизированный сборщик прошивки Padavan. Работает на Debian или Ubuntu, в том числе в подсистеме Windows для Linux (WSL).
 
+**Скриншоты:**
+
+<details>
+  <summary>Полный вывод скрипта</summary>
+
+  ![Полный вывод скрипта](misc/screenshots/main.webp)
+</details>
+
+<details>
+  <summary>Выбор конфига сборки</summary>
+
+  ![Выбор конфига сборки](misc/screenshots/select-config.webp)
+</details>
+
+<details>
+  <summary>Редактирование конфига сборки</summary>
+
+  ![Редактирование конфига сборки](misc/screenshots/edit-config.webp)
+</details>
+
+<br/>
+
+**Видео, ⏱️ ~3 min:**
+
+[![Видео](misc/screenshots/video-preview.webp)](https://youtu.be/AX7YRaR9CBw)
+
+
 ### Использование
 
 ```sh
