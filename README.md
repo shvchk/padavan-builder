@@ -35,7 +35,8 @@ Automated Padavan firmware builder. Runs on Debian or Ubuntu, including in Windo
 wget -qO- https://github.com/shvchk/padavan-builder/raw/main/host.sh | bash
 ```
 
-I recommend inspecting the [host.sh](host.sh) script before running it. It's a good practice before running any code on your machine, especially remote code.
+> [!WARNING]  
+> I recommend inspecting the [host.sh](host.sh) script before running it. It's a good practice before running any code on your machine, especially remote code.
 
 The script will do the following (manual steps in bold, everything else is automated):
 
