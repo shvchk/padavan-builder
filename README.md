@@ -70,13 +70,11 @@ The script won't delete Podman image with toolchain after building the firmware,
 
 ### Clean / uninstall
 
-To delete everything, just run:
+To delete all containers and container images, just run:
 
 ```sh
 podman system reset -f
 ```
-
-The only thing left would be the `podman` package itself, all data will be deleted.
 
 
 ### Use another repository, branch or Dockerfile / Containerfile

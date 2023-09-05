@@ -70,13 +70,11 @@ wget -qO- https://github.com/shvchk/padavan-builder/raw/main/host.sh | bash
 
 ### Очистка / удаление
 
-Чтобы всё удалить, выполните:
+Чтобы удалить все контейнеры и их образы, выполните:
 
 ```sh
 podman system reset -f
 ```
-
-Останется только сам пакет `podman`, а все данные будут удалены.
 
 
 ### Использование другого репозитория, ветки или Dockerfile / Containerfile
