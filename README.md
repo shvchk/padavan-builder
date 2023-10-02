@@ -32,11 +32,11 @@ Automated Padavan firmware builder. Runs on Debian or Ubuntu, including in Windo
 ### Usage
 
 ```sh
-wget -qO- https://github.com/shvchk/padavan-builder/raw/main/host.sh | bash
+wget -qO- https://github.com/shvchk/padavan-builder/raw/main/build.sh | bash
 ```
 
 > [!WARNING]  
-> I recommend inspecting the [host.sh](host.sh) script before running it. It's a good practice before running any code on your machine, especially remote code.
+> I recommend inspecting the [build.sh](build.sh) script before running it. It's a good practice before running any code on your machine, especially remote code.
 
 The script will do the following (manual steps in bold, everything else is automated):
 
@@ -63,28 +63,14 @@ The script will do the following (manual steps in bold, everything else is autom
 - Put the built firmware (`trx` file) in your home directory (Linux) or `C:/Users/Public/Downloads/padavan` (WSL)
 
 
-### Reuse / rebuild
+### Use another repository or branch
 
-The script won't delete Podman image with toolchain after building the firmware, so you can reuse it. Just run the script as usual, it will detect existing image and ask you if you want to use it or delete and rebuild it.
-
-
-### Clean / uninstall
-
-To delete all containers and container images, just run:
-
-```sh
-podman system reset -f
-```
-
-
-### Use another repository, branch or Dockerfile / Containerfile
-
-By default, the script uses [gitlab.com/hadzhioglu/padavan-ng](https://gitlab.com/hadzhioglu/padavan-ng) repository and `master` branch. To use another repository and branch, you can pass it as a parameter to the script: `host.sh <repo_url> <branch>` or use `PADAVAN_REPO` and `PADAVAN_BRANCH` environment variables. Passed parameters have priority over env vars. The repository should contain `Dockerfile`.
+By default, the script uses [gitlab.com/hadzhioglu/padavan-ng](https://gitlab.com/hadzhioglu/padavan-ng) repository and `master` branch. To use another repository and branch, you can pass it as a parameter to the script: `build.sh <repo_url> <branch>` or use `PADAVAN_REPO` and `PADAVAN_BRANCH` environment variables. Passed parameters have priority over env vars.
 
 When running via a pipe, as we did initially, alternative repository and branch can be set like this:
 
 ```sh
-wget -qO- https://github.com/shvchk/padavan-builder/raw/main/host.sh | \
+wget -qO- https://github.com/shvchk/padavan-builder/raw/main/build.sh | \
 bash -s -- https://example.com/anonymous/padavan dev
 ```
 
@@ -93,8 +79,6 @@ or
 ```sh
 PADAVAN_REPO=https://example.com/anonymous/padavan \
 PADAVAN_BRANCH=dev \
-wget -qO- https://github.com/shvchk/padavan-builder/raw/main/host.sh | bash
+wget -qO- https://github.com/shvchk/padavan-builder/raw/main/build.sh | bash
 
 ```
-
-You can also make script use any other Dockerfile / Containerfile with `PADAVAN_CONTAINERFILE` environment variable. This will override repo's Dockerfile.

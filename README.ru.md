@@ -32,11 +32,11 @@
 ### Использование
 
 ```sh
-wget -qO- https://github.com/shvchk/padavan-builder/raw/main/host.sh | bash
+wget -qO- https://github.com/shvchk/padavan-builder/raw/dev/build.sh | bash
 ```
 
 > [!WARNING]  
-> Рекомендую проверить скрипт [host.sh](host.sh) перед запуском. Это хорошая практика перед запуском любого кода на вашем компьютере, особенно удалённого кода.
+> Рекомендую проверить скрипт [build.sh](build.sh) перед запуском. Это хорошая практика перед запуском любого кода на вашем компьютере, особенно удалённого кода.
 
 Скрипт сделает следующее (шаги, требующие ручного вмешательства, выделены жирным, всё остальное автоматизировано):
 
@@ -63,28 +63,14 @@ wget -qO- https://github.com/shvchk/padavan-builder/raw/main/host.sh | bash
 - Поместит готовую прошивку (`trx` файл) в домашнюю папку (Linux) или в `C:/Users/Public/Downloads/padavan` (WSL)
 
 
-### Повторное использование / пересборка
+### Использование другого репозитория или ветки
 
-Скрипт не удаляет Podman-образ с собранным тулчейном после сборки прошивки, чтобы его можно было переиспользовать. Просто запустите скрипт как обычно, он обнаружит имеющийся образ и спросит, хотите ли вы использовать его или удалить и создать его заново.
-
-
-### Очистка / удаление
-
-Чтобы удалить все контейнеры и их образы, выполните:
-
-```sh
-podman system reset -f
-```
-
-
-### Использование другого репозитория, ветки или Dockerfile / Containerfile
-
-По умолчанию скрипт использует репозиторий [gitlab.com/hadzhioglu/padavan-ng](https://gitlab.com/hadzhioglu/padavan-ng) и `master` ветку. Чтобы использовать другой репозиторий и ветку, можно передать их скрипту как параметр: `host.sh <ссылка_на_репозиторий> <ветка>` или использовать переменные окружения `PADAVAN_REPO` и `PADAVAN_BRANCH`. Переданные параметры имеют приоритет над переменными окружения. Репозиторий должен содержать `Dockerfile`.
+По умолчанию скрипт использует репозиторий [gitlab.com/hadzhioglu/padavan-ng](https://gitlab.com/hadzhioglu/padavan-ng) и `master` ветку. Чтобы использовать другой репозиторий и ветку, можно передать их скрипту как параметр: `build.sh <ссылка_на_репозиторий> <ветка>` или использовать переменные окружения `PADAVAN_REPO` и `PADAVAN_BRANCH`. Переданные параметры имеют приоритет над переменными окружения.
 
 При запуске через пайп, как мы изначально и делали, другой репозиторий и ветку можно указать так:
 
 ```sh
-wget -qO- https://github.com/shvchk/padavan-builder/raw/main/host.sh | \
+wget -qO- https://github.com/shvchk/padavan-builder/raw/dev/build.sh | \
 bash -s -- https://example.com/anonymous/padavan dev
 ```
 
@@ -93,8 +79,6 @@ bash -s -- https://example.com/anonymous/padavan dev
 ```sh
 PADAVAN_REPO=https://example.com/anonymous/padavan \
 PADAVAN_BRANCH=dev \
-wget -qO- https://github.com/shvchk/padavan-builder/raw/main/host.sh | bash
+wget -qO- https://github.com/shvchk/padavan-builder/raw/dev/build.sh | bash
 
 ```
-
-Также можно указать скрипту использовать любой другой Dockerfile / Containerfile с помощью переменной окружения `PADAVAN_CONTAINERFILE`. Это будет иметь приоритет над Dockerfile репозитория.
