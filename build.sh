@@ -108,7 +108,7 @@ _prepare() {
 
     *)
       _log warn "Unknown OS, can't install dependencies"
-      _echo     " Please install these pacakges manually:"
+      _echo     " Please install these packages manually:"
       _echo     " ${deps[*]}"
 
       _confirm "Continue anyway (+) or exit (-)?" || exit 1
