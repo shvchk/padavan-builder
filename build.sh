@@ -49,13 +49,17 @@ _handle_exit() {
   fi
 
   _log warn "Cleaning"
-  podman stop "$container" &>> "$log_file"
+  podman container exists "$container" && podman stop "$container" &>> "$log_file"
 
-  _echo " Password required to unmount the disk image"
-  $sudo umount "$shared_dir" &>> "$log_file" || :
+  if grep -qsE "^\S+ $(realpath $shared_dir) " /proc/mounts; then
+    _echo " Password required to unmount the disk image"
+    $sudo umount "$shared_dir" &>> "$log_file" || :
+  fi
 
-  _echo "\n If you don't plan to reuse sources, it's ok to delete disk image"
-  _confirm "Delete $disk_img disk image?" && rm -rf "$disk_img" "$shared_dir" &>> "$log_file"
+  if [[ -f $disk_img ]]; then
+    _echo "\n If you don't plan to reuse sources, it's ok to delete disk image"
+    _confirm "Delete $disk_img disk image?" && rm -rf "$disk_img" "$shared_dir" &>> "$log_file"
+  fi
 }
 
 _confirm() {
