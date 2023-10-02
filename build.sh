@@ -80,8 +80,40 @@ _prepare() {
   _echo "$log_follow_reminder"
 
   _log info "Installing podman and utilities"
-  sudo apt update &>> "$log_file"
-  sudo apt install btrfs-progs fzf micro podman zstd -y &>> "$log_file"
+  deps=(btrfs-progs fzf micro podman zstd)
+
+  ID=""
+  ID_LIKE=""
+
+  [[ -f /etc/os-release ]] && . <(grep "^ID" /etc/os-release)
+
+  case "$ID $ID_LIKE" in
+    *alpine*)
+      sudo apk add --no-cache --no-interactive "${deps[@]}" &>> "$log_file" ;;
+
+    *arch*)
+      sudo pacman -Syu --noconfirm "${deps[@]}" &>> "$log_file" ;;
+
+    *debian*|*ubuntu*)
+      sudo apt update &>> "$log_file"
+      sudo apt install -y "${deps[@]}" &>> "$log_file" ;;
+
+    *fedora*|*rhel*)
+      sudo dnf install -y "${deps[@]}" &>> "$log_file" ;;
+
+    *suse*)
+      deps=("${deps[@]/btrfs-progs/btrfsprogs}")
+      deps=("${deps[@]/micro/micro-editor}")
+      sudo zypper --non-interactive install "${deps[@]}" &>> "$log_file" ;;
+
+    *)
+      _log warn "Unknown OS, can't install dependencies"
+      _echo     " Please install these pacakges manually:"
+      _echo     " ${deps[*]}"
+
+      _confirm "Continue anyway (+) or exit (-)?" || exit 1
+      ;;
+  esac
 
   export STORAGE_DRIVER="overlay"
   export STORAGE_OPTS="overlay.mountopt=volatile"
