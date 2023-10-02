@@ -2,7 +2,7 @@
 
 ## Padavan builder
 
-Automated Padavan firmware builder. Runs on Debian (11+) or Ubuntu (22.04+), including in Windows Subsystem for Linux (WSL).
+Automated Padavan firmware builder. Runs on almost any modern Linux. Windows can run it with Windows Subsystem for Linux (WSL) or virtual machine.
 
 **Screenshots:**
 
