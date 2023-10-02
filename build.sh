@@ -52,10 +52,10 @@ _handle_exit() {
   _log warn "Cleaning"
   podman stop "$container" &>> "$log_file"
 
-  _echo "Password required to unmount the disk image"
+  _echo " Password required to unmount the disk image"
   sudo umount "$shared_dir" &>> "$log_file" || :
 
-  _echo "If you don't plan to reuse sources, it's ok to delete disk image"
+  _echo "\n If you don't plan to reuse sources, it's ok to delete disk image"
   _confirm "Delete $disk_img disk image?" && rm -rf "$disk_img" "$shared_dir" &>> "$log_file"
 }
 
