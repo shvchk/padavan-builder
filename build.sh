@@ -25,7 +25,6 @@ tmp_dir="$(mktemp -d)"
 log_file="${tmp_dir}/${container}.log"
 log_follow_reminder=" You can follow the log live in another terminal with ${accent} tail -f '$log_file' "
 
-
 # helper functions
 
 _echo() {
@@ -53,7 +52,7 @@ _handle_exit() {
   podman stop "$container" &>> "$log_file"
 
   _echo " Password required to unmount the disk image"
-  sudo umount "$shared_dir" &>> "$log_file" || :
+  $sudo umount "$shared_dir" &>> "$log_file" || :
 
   _echo "\n If you don't plan to reuse sources, it's ok to delete disk image"
   _confirm "Delete $disk_img disk image?" && rm -rf "$disk_img" "$shared_dir" &>> "$log_file"
@@ -75,6 +74,8 @@ _confirm() {
 # main functions
 
 _prepare() {
+  (( $(id -u) > 0 )) && sudo="sudo" || sudo=""
+
   echo "$(date +'%Y.%m.%d %H:%M:%S') - Starting" > "$log_file"
   _echo "\n${info_msg} Log file: ${normal}${bold} ${log_file}"
   _echo "$log_follow_reminder"
@@ -89,22 +90,22 @@ _prepare() {
 
   case "$ID $ID_LIKE" in
     *alpine*)
-      sudo apk add --no-cache --no-interactive "${deps[@]}" &>> "$log_file" ;;
+      $sudo apk add --no-cache --no-interactive "${deps[@]}" &>> "$log_file" ;;
 
     *arch*)
-      sudo pacman -Syu --noconfirm "${deps[@]}" &>> "$log_file" ;;
+      $sudo pacman -Syu --noconfirm "${deps[@]}" &>> "$log_file" ;;
 
     *debian*|*ubuntu*)
-      sudo apt update &>> "$log_file"
-      sudo apt install -y "${deps[@]}" &>> "$log_file" ;;
+      $sudo apt update &>> "$log_file"
+      $sudo apt install -y "${deps[@]}" &>> "$log_file" ;;
 
     *fedora*|*rhel*)
-      sudo dnf install -y "${deps[@]}" &>> "$log_file" ;;
+      $sudo dnf install -y "${deps[@]}" &>> "$log_file" ;;
 
     *suse*)
       deps=("${deps[@]/btrfs-progs/btrfsprogs}")
       deps=("${deps[@]/micro/micro-editor}")
-      sudo zypper --non-interactive install "${deps[@]}" &>> "$log_file" ;;
+      $sudo zypper --non-interactive install "${deps[@]}" &>> "$log_file" ;;
 
     *)
       _log warn "Unknown OS, can't install dependencies"
@@ -132,8 +133,8 @@ _prepare() {
     mkfs.btrfs "$disk_img" &>> "$log_file"
   fi
 
-  sudo mount -o noatime,compress=zstd "$disk_img" "$shared_dir"
-  sudo chown -R $USER:$USER "$shared_dir"
+  $sudo mount -o noatime,compress=zstd "$disk_img" "$shared_dir"
+  $sudo chown -R $USER:$USER "$shared_dir"
 }
 
 ctnr_exec() {
