@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-set -euo pipefail
+set -exuo pipefail
 
 dest_dir="$HOME"
 win_dest_dir="/mnt/c/Users/Public/Downloads/padavan"
@@ -13,13 +13,15 @@ disk_img="${container}.btrfs"
 shared_dir="shared"
 toolchain_url="${repo_url}/-/jobs/artifacts/master/raw/toolchain.tzst?job=build+toolchain"
 
+deps=(btrfs-progs fzf micro podman wget zstd)
+dep_cmds=(mkfs.btrfs fzf micro podman wget zstd)
 
 # text decoration utilities
 normal=$(tput sgr0)
 bold=$(tput bold)
-info_msg="$(tput setab 33; tput setaf 231)${bold}" # blue bg, white text
-warn_msg="$(tput setab 220; tput setaf 16)${bold}" # yellow bg, black text
-accent="$(tput setab 238; tput setaf 231)${bold}" # gray bg, white text
+info_msg="$(tput setab 33 && tput setaf 231 ||:)${bold}" # blue bg, white text
+warn_msg="$(tput setab 220 && tput setaf 16 ||:)${bold}" # yellow bg, black text
+accent="$(tput setab 238 && tput setaf 231 ||:)${bold}" # gray bg, white text
 
 tmp_dir="$(mktemp -d)"
 log_file="${tmp_dir}/${container}.log"
@@ -84,41 +86,46 @@ _prepare() {
   _echo "\n${info_msg} Log file: ${normal}${bold} ${log_file}"
   _echo "$log_follow_reminder"
 
-  _log info "Installing podman and utilities"
-  deps=(btrfs-progs fzf micro podman zstd)
+  deps_satisfied=0
+  for i in "${dep_cmds[@]}"; do
+    command -v "$i" &> /dev/null && (( ++deps_satisfied )) || :
+  done
 
-  ID=""
-  ID_LIKE=""
+  if (( deps_satisfied < ${#dep_cmds[@]} )); then
+    _log info "Installing podman and utilities"
+    ID=""
+    ID_LIKE=""
 
-  [[ -f /etc/os-release ]] && . <(grep "^ID" /etc/os-release)
+    [[ -f /etc/os-release ]] && . <(grep "^ID" /etc/os-release)
 
-  case "$ID $ID_LIKE" in
-    *alpine*)
-      $sudo apk add --no-cache --no-interactive "${deps[@]}" &>> "$log_file" ;;
+    case "$ID $ID_LIKE" in
+      *alpine*)
+        $sudo apk add --no-cache --no-interactive "${deps[@]}" &>> "$log_file" ;;
 
-    *arch*)
-      $sudo pacman -Syu --noconfirm "${deps[@]}" &>> "$log_file" ;;
+      *arch*)
+        $sudo pacman -Syu --noconfirm "${deps[@]}" &>> "$log_file" ;;
 
-    *debian*|*ubuntu*)
-      $sudo apt update &>> "$log_file"
-      $sudo apt install -y "${deps[@]}" &>> "$log_file" ;;
+      *debian*|*ubuntu*)
+        $sudo apt update &>> "$log_file"
+        $sudo apt install -y "${deps[@]}" &>> "$log_file" ;;
 
-    *fedora*|*rhel*)
-      $sudo dnf install -y "${deps[@]}" &>> "$log_file" ;;
+      *fedora*|*rhel*)
+        $sudo dnf install -y "${deps[@]}" &>> "$log_file" ;;
 
-    *suse*)
-      deps=("${deps[@]/btrfs-progs/btrfsprogs}")
-      deps=("${deps[@]/micro/micro-editor}")
-      $sudo zypper --non-interactive install "${deps[@]}" &>> "$log_file" ;;
+      *suse*)
+        deps=("${deps[@]/btrfs-progs/btrfsprogs}")
+        deps=("${deps[@]/micro/micro-editor}")
+        $sudo zypper --non-interactive install "${deps[@]}" &>> "$log_file" ;;
 
-    *)
-      _log warn "Unknown OS, can't install dependencies"
-      _echo     " Please install these packages manually:"
-      _echo     " ${deps[*]}"
+      *)
+        _log warn "Unknown OS, can't install dependencies"
+        _echo     " Please install these packages manually:"
+        _echo     " ${deps[*]}"
 
-      _confirm "Continue anyway (+) or exit (-)?" || exit 1
-      ;;
-  esac
+        _confirm "Continue anyway (+) or exit (-)?" || exit 1
+        ;;
+    esac
+  fi
 
   export STORAGE_DRIVER="overlay"
   export STORAGE_OPTS="overlay.mountopt=volatile"
