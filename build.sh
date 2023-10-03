@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-set -exuo pipefail
+set -euo pipefail
 
 dest_dir="$HOME"
 win_dest_dir="/mnt/c/Users/Public/Downloads/padavan"
