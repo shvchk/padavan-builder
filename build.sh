@@ -17,8 +17,8 @@ deps=(btrfs-progs fzf micro podman wget zstd)
 dep_cmds=(mkfs.btrfs fzf micro podman wget zstd)
 
 # text decoration utilities
-normal=$(tput sgr0)
-bold=$(tput bold)
+normal=$(tput sgr0 ||:)
+bold=$(tput bold ||:)
 info_msg="$(tput setab 33 && tput setaf 231 ||:)${bold}" # blue bg, white text
 warn_msg="$(tput setab 220 && tput setaf 16 ||:)${bold}" # yellow bg, black text
 accent="$(tput setab 238 && tput setaf 231 ||:)${bold}" # gray bg, white text
@@ -65,8 +65,7 @@ _handle_exit() {
 }
 
 _confirm() {
-  echo
-  while true; do
+  while echo; do
     # `< /dev/tty` is required to be able to run via pipe: cat x.sh | bash
     read -rp "$* [ + or - ]: " confirmation < /dev/tty || { echo "No tty"; exit 1; }
     case "$confirmation" in
