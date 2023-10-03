@@ -148,7 +148,10 @@ ctnr_exec() {
 
 _start_container() {
   _log info "Starting container to build firmware"
-  podman run --rm --pull newer -dt -v "$(realpath "$shared_dir")":/opt --name "$container" "$img" &>> "$log_file"
+  # `podman pull` needed to support older podman versions,
+  # which don't have `podman run --pull newer`, like on Debian 11
+  podman pull "$img" &>> "$log_file"
+  podman run --rm -dt -v "$(realpath "$shared_dir")":/opt --name "$container" "$img" &>> "$log_file"
 }
 
 _clone_repo_sparse() {
@@ -234,7 +237,6 @@ _start_container
 _clone_repo_sparse /trunk
 
 # get prebuilt toolchain
-#ctnr_exec '' cp -r /tmp/toolchain padavan-ng
 wget -qO- "$toolchain_url" | tar -C "${shared_dir}/padavan-ng" --zstd -xf -
 
 _prepare_build_config
