@@ -11,7 +11,7 @@ img_name="padavan-builder"
 container="padavan-builder"
 disk_img="${container}.btrfs"
 shared_dir="shared"
-toolchain_url="${repo_url}/-/jobs/5199075640/artifacts/file/toolchain.tzst"
+toolchain_url="${repo_url}/-/jobs/5199075640/artifacts/raw/toolchain.tzst"
 
 deps=(btrfs-progs fzf micro podman wget zstd)
 dep_cmds=(mkfs.btrfs fzf micro podman wget zstd)
