@@ -11,7 +11,7 @@ img_name="padavan-builder"
 container="padavan-builder"
 disk_img="${container}.btrfs"
 shared_dir="shared"
-toolchain_url="${repo_url}/-/jobs/artifacts/master/raw/toolchain.tzst?job=build+toolchain"
+toolchain_url="${repo_url}/-/jobs/5199075640/artifacts/file/toolchain.tzst"
 
 deps=(btrfs-progs fzf micro podman wget zstd)
 dep_cmds=(mkfs.btrfs fzf micro podman wget zstd)
@@ -143,8 +143,8 @@ _prepare() {
     mkfs.btrfs "$disk_img" &>> "$log_file"
   fi
 
-  $sudo mount -o noatime,compress=zstd "$disk_img" "$shared_dir"
-  $sudo chown -R $USER:$USER "$shared_dir"
+  $sudo mount -o noatime,compress=zstd "$disk_img" "$shared_dir" &>> "$log_file"
+  $sudo chown -R $USER:$USER "$shared_dir" &>> "$log_file"
 }
 
 ctnr_exec() {
