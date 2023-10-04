@@ -27,6 +27,8 @@ tmp_dir="$(mktemp -d)"
 log_file="${tmp_dir}/${container}.log"
 log_follow_reminder=" You can follow the log live in another terminal with ${accent} tail -f '$log_file' "
 
+(( $(id -u) > 0 )) && sudo="sudo" || sudo=""
+
 # helper functions
 
 _echo() {
@@ -64,6 +66,9 @@ _handle_exit() {
     _echo "\n If you don't plan to reuse sources, it's ok to delete disk image"
     _confirm " Delete $disk_img disk image?" && rm -rf "$disk_img" "$shared_dir" &>> "$log_file"
   fi
+
+  # restore mtu
+  [[ -v $wan_mtu ]] && (( wan_mtu > 1280 )) && $sudo ip link set "$wan" mtu "$wan_mtu"
 }
 
 _confirm() {
@@ -81,15 +86,13 @@ _confirm() {
 # main functions
 
 _prepare() {
-  (( $(id -u) > 0 )) && sudo="sudo" || sudo=""
-
   echo "$(date +'%Y.%m.%d %H:%M:%S') - Starting" > "$log_file"
   _echo "\n${info_msg} Log file: ${normal}${bold} ${log_file}"
   _echo "$log_follow_reminder"
 
   deps_satisfied=0
   for i in "${dep_cmds[@]}"; do
-    command -v "$i" &> /dev/null && (( ++deps_satisfied )) || :
+    command -v "$i" &> /dev/null && (( ++deps_satisfied ))
   done
 
   if (( deps_satisfied < ${#dep_cmds[@]} )); then
@@ -135,6 +138,11 @@ _prepare() {
   if (( $(ulimit -Sn) < 4096 )); then
     _log warn "Limit on open files: $(ulimit -Sn). Sometimes that is not enough to build the toolchain"
   fi
+
+  # fix network mtu issues
+  wan="$(ip route | grep 'default via' | head -1 | awk '{print $5}' ||:)"
+  wan_mtu="$(cat "/sys/class/net/${wan}/mtu" ||:)"
+  (( wan_mtu > 1280 )) && $sudo ip link set "$wan" mtu 1280
 
   # if private, podman mounts don't use regular mounts and write to underlying dir instead
   [[ $(findmnt -no PROPAGATION /) == private ]] && sudo mount --make-rshared /
