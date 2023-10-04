@@ -252,14 +252,15 @@ _build_firmware() {
 
 _copy_firmware_to_host() {
   _echo " Copying firmware to $dest_dir"
+
+  # if we are in WSL, $dest_dir is $win_dest_dir
+  [[ -f /proc/sys/fs/binfmt_misc/WSLInterop && -w $win_dest_dir ]] && dest_dir=$win_dest_dir
+
+  mkdir -p "$dest_dir"
   cp "${mnt}"/padavan-ng/trunk/images/*trx "$dest_dir"
 
-  # if we are in WSL, move trx files to $win_dest_dir
-  if [[ -f /proc/sys/fs/binfmt_misc/WSLInterop && -w $win_dest_dir ]]; then
-    _echo " Moving firmware to ${win_dest_dir}/padavan"
-    mkdir -p "$win_dest_dir" &> /dev/null || :
-    mv "$dest_dir"/*trx "$win_dest_dir"
-  fi
+  . <(grep "^CONFIG_FIRMWARE_PRODUCT_ID=" "${mnt}/padavan-ng/trunk/.config")
+  cp "${mnt}/padavan-ng/trunk/.config" "${dest_dir}/${CONFIG_FIRMWARE_PRODUCT_ID}_$(date '+%Y.%m.%d_%H.%M.%S').config"
 }
 
 
