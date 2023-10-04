@@ -233,7 +233,7 @@ _prepare_build_config() {
   _echo " All changes are saved automatically and immediately"
   _echo " Close the file with ${accent} Ctrl + Q ${normal} when finished editing"
   _echo
-  read -rsn1 -p "${accent} Press any key to start the config editor ${normal}" < /dev/tty; echo
+  read -rsp " Press ${warn_msg} Enter ${normal} to start the config editor" < /dev/tty; echo
 
   micro -autosave 1 -ignorecase 1 -keymenu 1 -scrollbar 1 -filetype shell "$build_config"
   cp "$build_config" "${mnt}/padavan-ng/trunk/.config"
