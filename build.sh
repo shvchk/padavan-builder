@@ -68,7 +68,7 @@ _handle_exit() {
   fi
 
   # restore mtu
-  if [[ -v $wan_mtu ]] && (( wan_mtu > 1280 )); then
+  if [[ -v wan_mtu ]] && (( wan_mtu > 1280 )); then
     _log raw "Setting back network MTU"
     $sudo ip link set "$wan" mtu "$wan_mtu"
   fi
@@ -206,7 +206,7 @@ _prepare_build_config() {
                                           " Double click or Enter to confirm")
 
   config_file="$(find "${mnt}"/padavan-ng/trunk/configs/templates/*/*config | \
-                fzf +m -e -d / --with-nth 6.. --reverse --no-info --bind=esc:ignore --header-first --header "$config_selection_header")"
+                fzf +m -e -d / --with-nth 9.. --reverse --no-info --bind=esc:ignore --header-first --header "$config_selection_header")"
 
   cp "$config_file" "$build_config"
 
@@ -284,7 +284,13 @@ if [[ ! -d "${mnt}/padavan-ng" ]]; then
   wget -qO- "$toolchain_url" | tar -C "${mnt}/padavan-ng" --zstd -xf -
 fi
 
-_prepare_build_config
+# use predefined config
+if [[ -v PADAVAN_CONFIG && -n $PADAVAN_CONFIG ]]; then
+  cp "$PADAVAN_CONFIG" "${mnt}/padavan-ng/trunk/.config"
+else
+  _prepare_build_config
+fi
+
 _build_firmware
 _copy_firmware_to_host
 
