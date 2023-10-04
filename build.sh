@@ -271,10 +271,18 @@ trap _handle_exit EXIT
 _prepare
 
 _start_container
-_clone_repo_sparse /trunk
 
-# get prebuilt toolchain
-wget -qO- "$toolchain_url" | tar -C "${mnt}/padavan-ng" --zstd -xf -
+if [[ -d "${mnt}/padavan-ng" ]]; then
+  _log warn "Existing sources directory found"
+  _confirm " Reuse it (+) or delete and start from scratch (-)?" || rm -f "${mnt}/padavan-ng"
+fi
+
+if [[ ! -d "${mnt}/padavan-ng" ]]; then
+  _clone_repo_sparse /trunk
+
+  # get prebuilt toolchain
+  wget -qO- "$toolchain_url" | tar -C "${mnt}/padavan-ng" --zstd -xf -
+fi
 
 _prepare_build_config
 _build_firmware
