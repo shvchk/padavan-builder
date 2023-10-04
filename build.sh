@@ -62,7 +62,7 @@ _handle_exit() {
 
   if [[ -f $disk_img ]]; then
     _echo "\n If you don't plan to reuse sources, it's ok to delete disk image"
-    _confirm "Delete $disk_img disk image?" && rm -rf "$disk_img" "$shared_dir" &>> "$log_file"
+    _confirm " Delete $disk_img disk image?" && rm -rf "$disk_img" "$shared_dir" &>> "$log_file"
   fi
 }
 
@@ -135,6 +135,9 @@ _prepare() {
   if (( $(ulimit -Sn) < 4096 )); then
     _log warn "Limit on open files: $(ulimit -Sn). Sometimes that is not enough to build the toolchain"
   fi
+
+  # if private, podman mounts don't use regular mounts and write to underlying dir instead
+  [[ $(findmnt -no PROPAGATION /) == private ]] && sudo mount --make-rshared /
 
   mkdir -p "$shared_dir"
 
