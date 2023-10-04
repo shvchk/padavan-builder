@@ -85,6 +85,10 @@ _confirm() {
   done
 }
 
+_is_windows() {
+  [[ -f /proc/sys/fs/binfmt_misc/WSLInterop ]]
+}
+
 
 # main functions
 
@@ -129,7 +133,7 @@ _prepare() {
         _echo     " Please install these packages manually:"
         _echo     " ${deps[*]}"
 
-        _confirm "Continue anyway (+) or exit (-)?" || exit 1
+        _confirm " Continue anyway (+) or exit (-)?" || exit 1
         ;;
     esac
   fi
@@ -150,7 +154,7 @@ _prepare() {
 
   if (( wan_mtu > 1280 )); then
     _log warn "Changing MTU to 1280 to fix various possible network issues"
-    _echo     "It will be reverted back aftewards"
+    _echo     " It will be reverted back aftewards"
     $sudo ip link set "$wan" mtu 1280
   fi
 
@@ -254,7 +258,7 @@ _copy_firmware_to_host() {
   _echo " Copying firmware to $dest_dir"
 
   # if we are in WSL, $dest_dir is $win_dest_dir
-  [[ -f /proc/sys/fs/binfmt_misc/WSLInterop && -w $win_dest_dir ]] && dest_dir=$win_dest_dir
+  _is_windows && dest_dir=$win_dest_dir
 
   mkdir -p "$dest_dir"
   cp "${mnt}"/padavan-ng/trunk/images/*trx "$dest_dir"
