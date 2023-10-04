@@ -58,17 +58,20 @@ _handle_exit() {
   podman container exists "$container" && podman rm -f "$container" &>> "$log_file"
 
   if grep -qsE "^\S+ $(realpath $shared_dir) " /proc/mounts; then
-    _echo " Password required to unmount the disk image"
+    _log raw "Unmounting compressed virtual disk"
     $sudo umount "$shared_dir" &>> "$log_file" || :
   fi
 
   if [[ -f $disk_img ]]; then
-    _echo "\n If you don't plan to reuse sources, it's ok to delete disk image"
+    _echo "\n If you don't plan to reuse it, it's ok to delete virtual disk image"
     _confirm " Delete $disk_img disk image?" && rm -rf "$disk_img" "$shared_dir" &>> "$log_file"
   fi
 
   # restore mtu
-  [[ -v $wan_mtu ]] && (( wan_mtu > 1280 )) && $sudo ip link set "$wan" mtu "$wan_mtu"
+  if [[ -v $wan_mtu ]] && (( wan_mtu > 1280 )); then
+    _log raw "Setting back network MTU"
+    $sudo ip link set "$wan" mtu "$wan_mtu"
+  fi
 }
 
 _confirm() {
@@ -131,6 +134,8 @@ _prepare() {
     esac
   fi
 
+  _log info "Applying required system settings"
+
   export STORAGE_DRIVER="overlay"
   export STORAGE_OPTS="overlay.mountopt=volatile"
 
@@ -142,16 +147,28 @@ _prepare() {
   # fix network mtu issues
   wan="$(ip route | grep 'default via' | head -1 | awk '{print $5}' ||:)"
   wan_mtu="$(cat "/sys/class/net/${wan}/mtu" ||:)"
-  (( wan_mtu > 1280 )) && $sudo ip link set "$wan" mtu 1280
+
+  if (( wan_mtu > 1280 )); then
+    _log warn "Changing MTU to 1280 to fix various possible network issues"
+    _echo     "It will be reverted back aftewards"
+    $sudo ip link set "$wan" mtu 1280
+  fi
 
   # if private, podman mounts don't use regular mounts and write to underlying dir instead
-  [[ $(findmnt -no PROPAGATION /) == private ]] && sudo mount --make-rshared /
+  if [[ $(findmnt -no PROPAGATION /) == private ]]; then
+    _log warn "Making root mount shared to use compressed virtual disk and save space"
+    $sudo mount --make-rshared /
+  fi
 
   mkdir -p "$shared_dir"
 
   if [[ -f $disk_img ]]; then
-    _log raw "Existing $disk_img found, using it"
-  else
+    _log warn "Existing virtual disk found"
+    _confirm " Reuse it (+) or delete and make a new one (-)?" || rm -f "$disk_img"
+  fi
+
+  # needs to be separate from previous check, since we could have deleted img there
+  if [[ ! -f $disk_img ]]; then
     truncate -s 50G "$disk_img"
     mkfs.btrfs "$disk_img" &>> "$log_file"
   fi
