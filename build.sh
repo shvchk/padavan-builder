@@ -10,7 +10,6 @@ img="registry.gitlab.com/a-shevchuk/padavan-ng"
 img_name="padavan-builder"
 container="padavan-builder"
 disk_img="${container}.btrfs"
-shared_dir="shared"
 toolchain_url="${repo_url}/-/jobs/5199075640/artifacts/raw/toolchain.tzst"
 
 deps=(btrfs-progs fzf micro podman wget zstd)
@@ -24,6 +23,7 @@ warn_msg="$(tput setab 220 && tput setaf 16 ||:)${bold}" # yellow bg, black text
 accent="$(tput setab 238 && tput setaf 231 ||:)${bold}" # gray bg, white text
 
 tmp_dir="$(mktemp -d)"
+mnt="${tmp_dir}/mnt"
 log_file="${tmp_dir}/${container}.log"
 log_follow_reminder=" You can follow the log live in another terminal with ${accent} tail -f '$log_file' "
 
@@ -57,14 +57,14 @@ _handle_exit() {
   _log warn "Cleaning"
   podman container exists "$container" && podman rm -f "$container" &>> "$log_file"
 
-  if grep -qsE "^\S+ $(realpath $shared_dir) " /proc/mounts; then
+  if grep -qsE "^\S+ $(realpath $mnt) " /proc/mounts; then
     _log raw "Unmounting compressed virtual disk"
-    $sudo umount "$shared_dir" &>> "$log_file" || :
+    $sudo umount "$mnt" &>> "$log_file" || :
   fi
 
   if [[ -f $disk_img ]]; then
     _echo "\n If you don't plan to reuse it, it's ok to delete virtual disk image"
-    _confirm " Delete $disk_img disk image?" && rm -rf "$disk_img" "$shared_dir" &>> "$log_file"
+    _confirm " Delete $disk_img disk image?" && rm -rf "$disk_img" "$mnt" &>> "$log_file"
   fi
 
   # restore mtu
@@ -160,7 +160,7 @@ _prepare() {
     $sudo mount --make-rshared /
   fi
 
-  mkdir -p "$shared_dir"
+  mkdir -p "$mnt"
 
   if [[ -f $disk_img ]]; then
     _log warn "Existing virtual disk found"
@@ -173,8 +173,8 @@ _prepare() {
     mkfs.btrfs "$disk_img" &>> "$log_file"
   fi
 
-  $sudo mount -o noatime,compress=zstd "$disk_img" "$shared_dir" &>> "$log_file"
-  $sudo chown -R $USER:$USER "$shared_dir" &>> "$log_file"
+  $sudo mount -o noatime,compress=zstd "$disk_img" "$mnt" &>> "$log_file"
+  $sudo chown -R $USER:$USER "$mnt" &>> "$log_file"
 }
 
 ctnr_exec() {
@@ -187,7 +187,7 @@ _start_container() {
   # `podman pull` needed to support older podman versions,
   # which don't have `podman run --pull newer`, like on Debian 11
   podman pull "$img" &>> "$log_file"
-  podman run --rm -dt -v "$(realpath "$shared_dir")":/opt --name "$container" "$img" &>> "$log_file"
+  podman run --rm -dt -v "$(realpath "$mnt")":/opt --name "$container" "$img" &>> "$log_file"
 }
 
 _clone_repo_sparse() {
@@ -205,7 +205,7 @@ _prepare_build_config() {
                                           " Select by mouse or arrow keys" \
                                           " Double click or Enter to confirm")
 
-  config_file="$(find "${shared_dir}"/padavan-ng/trunk/configs/templates/*/*config | \
+  config_file="$(find "${mnt}"/padavan-ng/trunk/configs/templates/*/*config | \
                 fzf +m -e -d / --with-nth 6.. --reverse --no-info --bind=esc:ignore --header-first --header "$config_selection_header")"
 
   cp "$config_file" "$build_config"
@@ -236,7 +236,7 @@ _prepare_build_config() {
   read -rsn1 -p "${accent} Press any key to start the config editor ${normal}" < /dev/tty; echo
 
   micro -autosave 1 -ignorecase 1 -keymenu 1 -scrollbar 1 -filetype shell "$build_config"
-  cp "$build_config" "${shared_dir}/padavan-ng/trunk/.config"
+  cp "$build_config" "${mnt}/padavan-ng/trunk/.config"
 
   _echo " Build config backup: $build_config"
 }
@@ -252,7 +252,7 @@ _build_firmware() {
 
 _copy_firmware_to_host() {
   _echo " Copying firmware to $dest_dir"
-  cp "${shared_dir}"/padavan-ng/trunk/images/*trx "$dest_dir"
+  cp "${mnt}"/padavan-ng/trunk/images/*trx "$dest_dir"
 
   # if we are in WSL, move trx files to $win_dest_dir
   if [[ -f /proc/sys/fs/binfmt_misc/WSLInterop && -w $win_dest_dir ]]; then
@@ -273,7 +273,7 @@ _start_container
 _clone_repo_sparse /trunk
 
 # get prebuilt toolchain
-wget -qO- "$toolchain_url" | tar -C "${shared_dir}/padavan-ng" --zstd -xf -
+wget -qO- "$toolchain_url" | tar -C "${mnt}/padavan-ng" --zstd -xf -
 
 _prepare_build_config
 _build_firmware
