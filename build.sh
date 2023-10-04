@@ -45,13 +45,15 @@ _log() {
 }
 
 _handle_exit() {
+  set +euo pipefail
+
   if [[ $? != 0 ]]; then
     _echo "\n${warn_msg} Error occured, please check log: ${normal}${bold} ${log_file}"
     _echo " Failed command: $BASH_COMMAND"
   fi
 
   _log warn "Cleaning"
-  podman container exists "$container" && podman stop "$container" &>> "$log_file"
+  podman container exists "$container" && podman rm -f "$container" &>> "$log_file"
 
   if grep -qsE "^\S+ $(realpath $shared_dir) " /proc/mounts; then
     _echo " Password required to unmount the disk image"
