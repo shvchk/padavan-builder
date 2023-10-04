@@ -12,8 +12,18 @@ container="padavan-builder"
 disk_img="${container}.btrfs"
 toolchain_url="${repo_url}/-/jobs/5199075640/artifacts/raw/toolchain.tzst"
 
-deps=(btrfs-progs fzf micro podman wget zstd)
-dep_cmds=(mkfs.btrfs fzf micro podman wget zstd)
+deps=(btrfs-progs podman wget zstd)
+dep_cmds=(mkfs.btrfs podman wget zstd)
+
+if [[ ! -v PADAVAN_EDITOR || -z $PADAVAN_EDITOR ]]; then
+  deps+=(micro)
+  dep_cmds+=(micro)
+fi
+
+if [[ ! -v PADAVAN_CONFIG || -z $PADAVAN_CONFIG ]]; then
+  deps+=(fzf micro)
+  dep_cmds+=(fzf micro)
+fi
 
 # text decoration utilities
 normal=$(tput sgr0 ||:)
@@ -239,7 +249,12 @@ _prepare_build_config() {
   _echo
   read -rsp " Press ${warn_msg} Enter ${normal} to start the config editor" < /dev/tty; echo
 
-  micro -autosave 1 -ignorecase 1 -keymenu 1 -scrollbar 1 -filetype shell "$build_config"
+  if [[ -v PADAVAN_EDITOR && -n $PADAVAN_EDITOR ]]; then
+    $PADAVAN_EDITOR "$build_config"
+  else
+    micro -autosave 1 -ignorecase 1 -keymenu 1 -scrollbar 1 -filetype shell "$build_config"
+  fi
+
   cp "$build_config" "${mnt}/padavan-ng/trunk/.config"
 
   _echo " Build config backup: $build_config"
