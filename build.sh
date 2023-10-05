@@ -12,19 +12,6 @@ container="padavan-builder"
 disk_img="${container}.btrfs"
 toolchain_url="${repo_url}/-/jobs/5199075640/artifacts/raw/toolchain.tzst"
 
-deps=(btrfs-progs podman wget zstd)
-dep_cmds=(mkfs.btrfs podman wget zstd)
-
-if [[ ! -v PADAVAN_EDITOR || -z $PADAVAN_EDITOR ]]; then
-  deps+=(micro)
-  dep_cmds+=(micro)
-fi
-
-if [[ ! -v PADAVAN_CONFIG || -z $PADAVAN_CONFIG ]]; then
-  deps+=(fzf micro)
-  dep_cmds+=(fzf micro)
-fi
-
 # text decoration utilities
 normal=$(tput sgr0 ||:)
 bold=$(tput bold ||:)
@@ -73,8 +60,11 @@ _handle_exit() {
   fi
 
   if [[ -f $disk_img ]]; then
-    _echo "\n If you don't plan to reuse it, it's ok to delete virtual disk image"
+    _echo "\n If you don't plan to reuse sources, it's ok to delete virtual disk image"
     _confirm " Delete $disk_img disk image?" && rm -rf "$disk_img" "$mnt" &>> "$log_file"
+  elif [[ -d $mnt ]]; then
+    _echo "\n If you don't plan to reuse sources, it's ok to delete it"
+    _confirm " Delete sources directory ($mnt)?" && rm -rf "$mnt" &>> "$log_file"
   fi
 
   # restore mtu
@@ -102,10 +92,24 @@ _is_windows() {
 
 # main functions
 
-_prepare() {
-  echo "$(date +'%Y.%m.%d %H:%M:%S') - Starting" > "$log_file"
-  _echo "\n${info_msg} Log file: ${normal}${bold} ${log_file}"
-  _echo "$log_follow_reminder"
+_satisfy_dependencies() {
+  deps=(btrfs-progs podman wget zstd)
+  dep_cmds=(mkfs.btrfs podman wget zstd)
+
+  if [[ ! -v PADAVAN_EDITOR || -z $PADAVAN_EDITOR ]]; then
+    deps+=(micro)
+    dep_cmds+=(micro)
+  fi
+
+  if [[ ! -v PADAVAN_CONFIG || -z $PADAVAN_CONFIG ]]; then
+    deps+=(fzf micro)
+    dep_cmds+=(fzf micro)
+  fi
+
+  if _is_windows; then
+    deps+=(procps)
+    dep_cmds+=(pkill)
+  fi
 
   deps_satisfied=0
   for i in "${dep_cmds[@]}"; do
@@ -124,6 +128,7 @@ _prepare() {
         $sudo apk add --no-cache --no-interactive "${deps[@]}" &>> "$log_file" ;;
 
       *arch*)
+        deps=("${deps[@]/procps/procps-ng}")
         $sudo pacman -Syu --noconfirm "${deps[@]}" &>> "$log_file" ;;
 
       *debian*|*ubuntu*)
@@ -131,6 +136,7 @@ _prepare() {
         $sudo apt install -y "${deps[@]}" &>> "$log_file" ;;
 
       *fedora*|*rhel*)
+        deps=("${deps[@]/procps/procps-ng}")
         $sudo dnf install -y "${deps[@]}" &>> "$log_file" ;;
 
       *suse*)
@@ -147,12 +153,21 @@ _prepare() {
         ;;
     esac
   fi
+}
+
+_prepare() {
+  echo "$(date +'%Y.%m.%d %H:%M:%S') - Starting" > "$log_file"
+  _echo "\n${info_msg} Log file: ${normal}${bold} ${log_file}"
+  _echo "$log_follow_reminder"
+
+  _satisfy_dependencies
 
   _log info "Applying required system settings"
 
   export STORAGE_DRIVER="overlay"
   export STORAGE_OPTS="overlay.mountopt=volatile"
 
+  # increase open files limit
   ulimit -Sn "$(ulimit -Hn)"
   if (( $(ulimit -Sn) < 4096 )); then
     _log warn "Limit on open files: $(ulimit -Sn). Sometimes that is not enough to build the toolchain"
@@ -169,26 +184,32 @@ _prepare() {
   fi
 
   # if private, podman mounts don't use regular mounts and write to underlying dir instead
-  if [[ $(findmnt -no PROPAGATION /) == private ]]; then
-    _log warn "Making root mount shared to use compressed virtual disk and save space"
-    $sudo mount --make-rshared /
+  #if [[ $(findmnt -no PROPAGATION /) == private ]]; then
+  #  _log warn "Making root mount shared to use compressed virtual disk and save space"
+  #  $sudo mount --make-rshared /
+  #fi
   fi
 
-  mkdir -p "$mnt"
+  if _is_windows; then
+    mnt="$container"
+    mkdir -p "$mnt"
+  else
+    mkdir -p "$mnt"
 
-  if [[ -f $disk_img ]]; then
-    _log warn "Existing virtual disk found"
-    _confirm " Reuse it (+) or delete and make a new one (-)?" || rm -f "$disk_img"
+    if [[ -f $disk_img ]]; then
+      _log warn "Existing virtual disk found"
+      _confirm " Reuse it (+) or delete and make a new one (-)?" || rm -f "$disk_img"
+    fi
+
+    # needs to be separate from previous check, since we could have deleted img there
+    if [[ ! -f $disk_img ]]; then
+      truncate -s 50G "$disk_img"
+      mkfs.btrfs "$disk_img" &>> "$log_file"
+    fi
+
+    $sudo mount -o noatime,compress=zstd "$disk_img" "$mnt" &>> "$log_file"
+    $sudo chown -R $USER:$USER "$mnt" &>> "$log_file"
   fi
-
-  # needs to be separate from previous check, since we could have deleted img there
-  if [[ ! -f $disk_img ]]; then
-    truncate -s 50G "$disk_img"
-    mkfs.btrfs "$disk_img" &>> "$log_file"
-  fi
-
-  $sudo mount -o noatime,compress=zstd "$disk_img" "$mnt" &>> "$log_file"
-  $sudo chown -R $USER:$USER "$mnt" &>> "$log_file"
 }
 
 ctnr_exec() {
@@ -213,14 +234,17 @@ _clone_repo_sparse() {
 }
 
 _prepare_build_config() {
+  _log info "Preparing build config"
   build_config="${tmp_dir}/padavan-build.config"
   config_selection_header=$(printf "%s\n" "${warn_msg} Select your router model ${normal}" \
                                           " Filter by entering text" \
                                           " Select by mouse or arrow keys" \
                                           " Double click or Enter to confirm")
 
+  configs_glob="${mnt}/padavan-ng/trunk/configs/templates/*/*config"
+  configs_glob_slashes=${configs_glob//[^\/]/}
   config_file="$(find "${mnt}"/padavan-ng/trunk/configs/templates/*/*config | \
-                fzf +m -e -d / --with-nth 9.. --reverse --no-info --bind=esc:ignore --header-first --header "$config_selection_header")"
+                fzf +m -e -d / --with-nth ${#configs_glob_slashes}.. --reverse --no-info --bind=esc:ignore --header-first --header "$config_selection_header")"
 
   cp "$config_file" "$build_config"
 
@@ -273,7 +297,7 @@ _copy_firmware_to_host() {
   _echo " Copying firmware to $dest_dir"
 
   # if we are in WSL, $dest_dir is $win_dest_dir
-  _is_windows && dest_dir=$win_dest_dir
+  _is_windows && dest_dir="$win_dest_dir"
 
   mkdir -p "$dest_dir"
   cp "${mnt}"/padavan-ng/trunk/images/*trx "$dest_dir"
