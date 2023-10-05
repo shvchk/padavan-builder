@@ -72,6 +72,11 @@ _handle_exit() {
     _log raw "Setting back network MTU"
     $sudo ip link set "$wan" mtu "$wan_mtu"
   fi
+
+  if _is_windows; then
+    _log raw "Stop cache cleaner"
+    $sudo pkill -f cache_cleaner
+  fi
 }
 
 _confirm() {
@@ -188,6 +193,20 @@ _prepare() {
   #  _log warn "Making root mount shared to use compressed virtual disk and save space"
   #  $sudo mount --make-rshared /
   #fi
+
+  if _is_windows; then
+    _log warn "Windows WSL has a bug, it doesn't release memory used for cache"
+    _echo    " On file intensive operations it can consume all memory and crash"
+    _echo    " see ${accent} https://github.com/microsoft/WSL/issues/4166 ${normal}"
+    _log raw  "To fix that, we can run a periodic cache cleaner"
+    _echo    " It should help release memory at the price of some performance penalty"
+    _echo    " It can be stopped manually at any time, and will be automatically stopped on script exit"
+
+    if _confirm " Run cache cleaner?"; then
+      # since we're on Windows, pretty safe to assume we have `sudo` command available
+      sudo -b sh -c "while sleep 150; do sync; echo 3 > /proc/sys/vm/drop_caches; : cache_cleaner; done"
+      _log raw  "To stop cache cleaner manually, use ${accent} sudo pkill -f cache_cleaner ${normal}"
+    fi
   fi
 
   if _is_windows; then
