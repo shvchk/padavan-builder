@@ -32,7 +32,7 @@ Automated Padavan firmware builder. Runs on almost any modern Linux. Windows can
 ### Usage
 
 ```sh
-wget -qO- https://github.com/shvchk/padavan-builder/raw/dev/build.sh | bash
+wget -qO- https://github.com/shvchk/padavan-builder/raw/main/build.sh | bash
 ```
 
 > [!WARNING]  
@@ -70,7 +70,7 @@ By default, the script uses [gitlab.com/hadzhioglu/padavan-ng](https://gitlab.co
 When running via a pipe, as we did initially, alternative repository and branch can be set like this:
 
 ```sh
-wget -qO- https://github.com/shvchk/padavan-builder/raw/dev/build.sh | \
+wget -qO- https://github.com/shvchk/padavan-builder/raw/main/build.sh | \
 bash -s -- https://example.com/anonymous/padavan dev
 ```
 
@@ -79,6 +79,6 @@ or
 ```sh
 PADAVAN_REPO=https://example.com/anonymous/padavan \
 PADAVAN_BRANCH=dev \
-wget -qO- https://github.com/shvchk/padavan-builder/raw/dev/build.sh | bash
+wget -qO- https://github.com/shvchk/padavan-builder/raw/main/build.sh | bash
 
 ```

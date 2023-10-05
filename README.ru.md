@@ -32,7 +32,7 @@
 ### Использование
 
 ```sh
-wget -qO- https://github.com/shvchk/padavan-builder/raw/dev/build.sh | bash
+wget -qO- https://github.com/shvchk/padavan-builder/raw/main/build.sh | bash
 ```
 
 > [!WARNING]  
@@ -70,7 +70,7 @@ wget -qO- https://github.com/shvchk/padavan-builder/raw/dev/build.sh | bash
 При запуске через пайп, как мы изначально и делали, другой репозиторий и ветку можно указать так:
 
 ```sh
-wget -qO- https://github.com/shvchk/padavan-builder/raw/dev/build.sh | \
+wget -qO- https://github.com/shvchk/padavan-builder/raw/main/build.sh | \
 bash -s -- https://example.com/anonymous/padavan dev
 ```
 
@@ -79,6 +79,6 @@ bash -s -- https://example.com/anonymous/padavan dev
 ```sh
 PADAVAN_REPO=https://example.com/anonymous/padavan \
 PADAVAN_BRANCH=dev \
-wget -qO- https://github.com/shvchk/padavan-builder/raw/dev/build.sh | bash
+wget -qO- https://github.com/shvchk/padavan-builder/raw/main/build.sh | bash
 
 ```
