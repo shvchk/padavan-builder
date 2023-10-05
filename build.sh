@@ -319,10 +319,10 @@ _copy_firmware_to_host() {
   _is_windows && dest_dir="$win_dest_dir"
 
   mkdir -p "$dest_dir"
-  cp "${mnt}"/padavan-ng/trunk/images/*trx "$dest_dir"
+  cp -v "${mnt}"/padavan-ng/trunk/images/*trx "$dest_dir"
 
   . <(grep "^CONFIG_FIRMWARE_PRODUCT_ID=" "${mnt}/padavan-ng/trunk/.config")
-  cp "${mnt}/padavan-ng/trunk/.config" "${dest_dir}/${CONFIG_FIRMWARE_PRODUCT_ID}_$(date '+%Y.%m.%d_%H.%M.%S').config"
+  cp -v "${mnt}/padavan-ng/trunk/.config" "${dest_dir}/${CONFIG_FIRMWARE_PRODUCT_ID}_$(date '+%Y.%m.%d_%H.%M.%S').config"
 }
 
 
