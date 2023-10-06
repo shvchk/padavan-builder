@@ -44,12 +44,12 @@ _log() {
 }
 
 _handle_exit() {
-  set +euo pipefail
-
   if [[ $? != 0 ]]; then
     _echo "\n${warn_msg} Error occured, please check log: ${normal}${bold} ${log_file}"
     _echo " Failed command: $BASH_COMMAND"
   fi
+
+  set +euo pipefail
 
   _log warn "Cleaning"
   podman container exists "$container" && podman rm -f "$container" &>> "$log_file"
