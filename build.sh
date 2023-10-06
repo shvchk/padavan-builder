@@ -70,7 +70,7 @@ _handle_exit() {
   fi
 
   # restore mtu
-  if [[ -v wan_mtu ]] && (( wan_mtu > 1280 )); then
+  if (( ${wan_mtu:-0} > 1280 )); then
     _log raw "Setting back network MTU"
     $sudo ip link set "$wan" mtu "$wan_mtu"
   fi
@@ -103,12 +103,12 @@ _satisfy_dependencies() {
   deps=(btrfs-progs podman wget zstd)
   dep_cmds=(mkfs.btrfs podman wget zstd)
 
-  if [[ ! -v PADAVAN_EDITOR || -z $PADAVAN_EDITOR ]]; then
+  if [[ -z ${PADAVAN_EDITOR:-} ]]; then
     deps+=(micro)
     dep_cmds+=(micro)
   fi
 
-  if [[ ! -v PADAVAN_CONFIG || -z $PADAVAN_CONFIG ]]; then
+  if [[ -z ${PADAVAN_CONFIG:-} ]]; then
     deps+=(fzf micro)
     dep_cmds+=(fzf micro)
   fi
@@ -256,11 +256,24 @@ _start_container() {
 }
 
 _clone_repo_sparse() {
-  _log info "Cloning $repo_url ($branch)"
   # sparse checkout
-  ctnr_exec '' git clone -vn --depth 1 --filter tree:0 -b "$branch" "$repo_url" &>> "$log_file"
-  ctnr_exec /opt/padavan-ng git sparse-checkout set --no-cone "$@" &>> "$log_file"
-  ctnr_exec /opt/padavan-ng git checkout &>> "$log_file"
+  ctnr_exec '' git clone -vn --depth 1 --filter tree:0 -b "$branch" "$repo_url"
+  ctnr_exec /opt/padavan-ng git sparse-checkout set --no-cone "$@"
+  ctnr_exec /opt/padavan-ng git checkout
+}
+
+_reset_and_update_sources() {
+  (
+    cd "${mnt}/padavan-ng"
+    git reset --hard
+    git clean -dfx
+    git status
+    git pull
+  )
+}
+
+_get_prebuilt_toolchain() {
+  wget -qO- "$toolchain_url" | tar -C "${mnt}/padavan-ng" --zstd -xf -
 }
 
 _prepare_build_config() {
@@ -303,7 +316,7 @@ _prepare_build_config() {
   _echo
   read -rsp " Press ${warn_msg} Enter ${normal} to start the config editor" < /dev/tty; echo
 
-  if [[ -v PADAVAN_EDITOR && -n $PADAVAN_EDITOR ]]; then
+  if [[ -n ${PADAVAN_EDITOR:-} ]]; then
     $PADAVAN_EDITOR "$build_config"
   else
     micro -autosave 1 -ignorecase 1 -keymenu 1 -scrollbar 1 -filetype shell "$build_config"
@@ -352,15 +365,22 @@ elif [[ $PADAVAN_REUSE == false ]]; then
   rm -rf "${mnt}/padavan-ng" &>> "$log_file"
 fi
 
-if [[ ! -d "${mnt}/padavan-ng" ]]; then
-  _clone_repo_sparse /trunk
-
-  # get prebuilt toolchain
-  wget -qO- "$toolchain_url" | tar -C "${mnt}/padavan-ng" --zstd -xf -
+# sources directory still available
+if [[ -d "${mnt}/padavan-ng" ]]; then
+  if [[ ${PADAVAN_UPDATE:-} == true ]] \
+  || _confirm " Reset and update sources (+) or proceed as is (-)?"; then
+    _log info "Updating"
+    _reset_and_update_sources &>> "$log_file"
+    _get_prebuilt_toolchain
+  fi
+else
+  _log info "Downloading sources and toolchain"
+  _clone_repo_sparse /trunk &>> "$log_file"
+  _get_prebuilt_toolchain
 fi
 
 # use predefined config
-if [[ -v PADAVAN_CONFIG && -n $PADAVAN_CONFIG ]]; then
+if [[ -n ${PADAVAN_CONFIG:-} ]]; then
   cp "$PADAVAN_CONFIG" "${mnt}/padavan-ng/trunk/.config"
 else
   _prepare_build_config
