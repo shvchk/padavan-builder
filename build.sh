@@ -65,7 +65,7 @@ _handle_exit() {
   elif [[ -d $mnt && ! -v PADAVAN_REUSE ]]; then
     _echo "\n If you don't plan to reuse sources, it's ok to delete it"
     _confirm " Delete sources directory ($mnt)?" && rm -rf "$mnt" &>> "$log_file"
-  elif [[ $PADAVAN_REUSE == false ]]; then
+  elif [[ ${PADAVAN_REUSE:-} == false ]]; then
     rm -rf "$disk_img" "$mnt" &>> "$log_file"
   fi
 
@@ -217,7 +217,7 @@ _prepare() {
     if [[ -d $mnt && ! -v PADAVAN_REUSE ]]; then
       _log warn "Existing sources directory found"
       _confirm " Reuse it (+) or delete and make a new one (-)?" || rm -rf "$mnt" &>> "$log_file"
-    elif [[ $PADAVAN_REUSE == false ]]; then
+    elif [[ ${PADAVAN_REUSE:-} == false ]]; then
         rm -rf "$mnt" &>> "$log_file"
     fi
 
@@ -226,7 +226,7 @@ _prepare() {
     if [[ -f $disk_img && ! -v PADAVAN_REUSE ]]; then
       _log warn "Existing virtual disk found"
       _confirm " Reuse it (+) or delete and make a new one (-)?" || rm -f "$disk_img" &>> "$log_file"
-    elif [[ $PADAVAN_REUSE == false ]]; then
+    elif [[ ${PADAVAN_REUSE:-} == false ]]; then
         rm -f "$disk_img" &>> "$log_file"
     fi
 
@@ -361,7 +361,7 @@ _start_container
 if [[ -d "${mnt}/padavan-ng" && ! -v PADAVAN_REUSE ]]; then
   _log warn "Existing sources directory found"
   _confirm " Reuse it (+) or delete and start from scratch (-)?" || rm -rf "${mnt}/padavan-ng" &>> "$log_file"
-elif [[ $PADAVAN_REUSE == false ]]; then
+elif [[ ${PADAVAN_REUSE:-} == false ]]; then
   rm -rf "${mnt}/padavan-ng" &>> "$log_file"
 fi
 
