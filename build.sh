@@ -59,12 +59,14 @@ _handle_exit() {
     $sudo umount "$mnt" &>> "$log_file" || :
   fi
 
-  if [[ -f $disk_img ]]; then
+  if [[ -f $disk_img && ! -v PADAVAN_REUSE ]]; then
     _echo "\n If you don't plan to reuse sources, it's ok to delete virtual disk image"
     _confirm " Delete $disk_img disk image?" && rm -rf "$disk_img" "$mnt" &>> "$log_file"
-  elif [[ -d $mnt ]]; then
+  elif [[ -d $mnt && ! -v PADAVAN_REUSE ]]; then
     _echo "\n If you don't plan to reuse sources, it's ok to delete it"
     _confirm " Delete sources directory ($mnt)?" && rm -rf "$mnt" &>> "$log_file"
+  elif [[ $PADAVAN_REUSE == false ]]; then
+    rm -rf "$disk_img" "$mnt" &>> "$log_file"
   fi
 
   # restore mtu
@@ -211,13 +213,21 @@ _prepare() {
 
   if _is_windows; then
     mnt="$container"
+
+    if [[ -d $mnt && ! -v PADAVAN_REUSE ]]; then
+      _log warn "Existing sources directory found"
+      _confirm " Reuse it (+) or delete and make a new one (-)?" || rm -rf "$mnt" &>> "$log_file"
+    elif [[ $PADAVAN_REUSE == false ]]; then
+        rm -rf "$mnt" &>> "$log_file"
+    fi
+
     mkdir -p "$mnt"
   else
-    mkdir -p "$mnt"
-
-    if [[ -f $disk_img ]]; then
+    if [[ -f $disk_img && ! -v PADAVAN_REUSE ]]; then
       _log warn "Existing virtual disk found"
-      _confirm " Reuse it (+) or delete and make a new one (-)?" || rm -f "$disk_img"
+      _confirm " Reuse it (+) or delete and make a new one (-)?" || rm -f "$disk_img" &>> "$log_file"
+    elif [[ $PADAVAN_REUSE == false ]]; then
+        rm -f "$disk_img" &>> "$log_file"
     fi
 
     # needs to be separate from previous check, since we could have deleted img there
@@ -226,6 +236,7 @@ _prepare() {
       mkfs.btrfs "$disk_img" &>> "$log_file"
     fi
 
+    mkdir -p "$mnt"
     $sudo mount -o noatime,compress=zstd "$disk_img" "$mnt" &>> "$log_file"
     $sudo chown -R $USER:$USER "$mnt" &>> "$log_file"
   fi
@@ -334,9 +345,11 @@ _prepare
 
 _start_container
 
-if [[ -d "${mnt}/padavan-ng" ]]; then
+if [[ -d "${mnt}/padavan-ng" && ! -v PADAVAN_REUSE ]]; then
   _log warn "Existing sources directory found"
-  _confirm " Reuse it (+) or delete and start from scratch (-)?" || rm -f "${mnt}/padavan-ng"
+  _confirm " Reuse it (+) or delete and start from scratch (-)?" || rm -rf "${mnt}/padavan-ng" &>> "$log_file"
+elif [[ $PADAVAN_REUSE == false ]]; then
+  rm -rf "${mnt}/padavan-ng" &>> "$log_file"
 fi
 
 if [[ ! -d "${mnt}/padavan-ng" ]]; then
