@@ -54,7 +54,7 @@ _handle_exit() {
   _log warn "Cleaning"
   podman container exists "$container" && podman rm -f "$container" &>> "$log_file"
 
-  if grep -qsE "^\S+ $(realpath $mnt) " /proc/mounts; then
+  if grep -qsE "^\S+ $(realpath "$mnt") " /proc/mounts; then
     _log raw "Unmounting compressed virtual disk"
     $sudo umount "$mnt" &>> "$log_file" || :
   fi
@@ -255,13 +255,6 @@ _start_container() {
   podman run --rm -dt -v "$(realpath "$mnt")":/opt --name "$container" "$img" &>> "$log_file"
 }
 
-_clone_repo_sparse() {
-  # sparse checkout
-  ctnr_exec '' git clone -vn --depth 1 --filter tree:0 -b "$branch" "$repo_url"
-  ctnr_exec /opt/padavan-ng git sparse-checkout set --no-cone "$@"
-  ctnr_exec /opt/padavan-ng git checkout
-}
-
 _reset_and_update_sources() {
   (
     cd "${mnt}/padavan-ng"
@@ -375,7 +368,7 @@ if [[ -d "${mnt}/padavan-ng" ]]; then
   fi
 else
   _log info "Downloading sources and toolchain"
-  _clone_repo_sparse /trunk &>> "$log_file"
+  ctnr_exec "" git clone --depth 1 -b "$branch" "$repo_url"
   _get_prebuilt_toolchain
 fi
 
