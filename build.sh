@@ -71,11 +71,6 @@ _handle_exit() {
     _log raw "Setting back network MTU"
     $sudo ip link set "$wan" mtu "$wan_mtu"
   fi
-
-  if [[ ${cache_cleaner:-} == true ]]; then
-    _log raw "Stop cache cleaner"
-    $sudo pkill -f 'while sleep 150.*drop_caches'
-  fi
 }
 
 _confirm() {
@@ -195,20 +190,13 @@ _prepare() {
   fi
 
   if _is_windows; then
-    _log warn "Preventing Windows Subsystem for Linux (WSL) crashes"
-    _echo    " WSL has a bug: it doesn't release memory used for file cache"
+    _log warn "Windows Subsystem for Linux (WSL) has a bug: it doesn't release memory used for file cache"
     _echo    " On file intensive operations it can consume all memory and crash"
-    _echo    " see ${accent} https://github.com/microsoft/WSL/issues/4166 ${normal}"
-    _log raw  "To fix that, we can run a periodic cache cleaner"
-    _echo    " It should help release memory at the price of some performance penalty"
-    _echo    " It can be stopped manually at any time, and will be automatically stopped on script exit"
-
-    if _confirm " Run cache cleaner?"; then
-      cache_cleaner=true
-      # since we're on Windows, pretty safe to assume we have `sudo` command available
-      sudo -b sh -c "while sleep 150; do sync; echo 3 > /proc/sys/vm/drop_caches; done"
-      _log raw  "To stop cache cleaner manually, use ${accent} sudo pkill -f 'while sleep 150.*drop_caches' ${normal}"
-    fi
+    _echo    " see ${accent} https://github.com/microsoft/WSL/issues/4166 "
+    _echo
+    _echo    " If you experience WSL crashes, you can run a periodic cache cleaner, which should help release memory:"
+    _echo    " ${accent} sudo sh -c 'while sleep 150; do sync; echo 3 > /proc/sys/vm/drop_caches; done' "
+    _echo    " You can then stop it at any time with ${accent} Ctrl + C "
   fi
 
   if [[ -f $disk_img && ! -v PADAVAN_REUSE ]]; then
