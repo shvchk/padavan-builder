@@ -72,9 +72,9 @@ _handle_exit() {
     $sudo ip link set "$wan" mtu "$wan_mtu"
   fi
 
-  if _is_windows; then
+  if [[ ${cache_cleaner:-} == true ]]; then
     _log raw "Stop cache cleaner"
-    $sudo pkill -f cache_cleaner
+    $sudo pkill -f 'while sleep 150.*drop_caches'
   fi
 }
 
@@ -204,6 +204,7 @@ _prepare() {
     _echo    " It can be stopped manually at any time, and will be automatically stopped on script exit"
 
     if _confirm " Run cache cleaner?"; then
+      cache_cleaner=true
       # since we're on Windows, pretty safe to assume we have `sudo` command available
       sudo -b sh -c "while sleep 150; do sync; echo 3 > /proc/sys/vm/drop_caches; done"
       _log raw  "To stop cache cleaner manually, use ${accent} sudo pkill -f 'while sleep 150.*drop_caches' ${normal}"
