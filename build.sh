@@ -195,7 +195,8 @@ _prepare() {
   fi
 
   if _is_windows; then
-    _log warn "Windows WSL has a bug, it doesn't release memory used for cache"
+    _log warn "Preventing Windows Subsystem for Linux (WSL) crashes"
+    _echo    " WSL has a bug: it doesn't release memory used for file cache"
     _echo    " On file intensive operations it can consume all memory and crash"
     _echo    " see ${accent} https://github.com/microsoft/WSL/issues/4166 ${normal}"
     _log raw  "To fix that, we can run a periodic cache cleaner"
@@ -204,8 +205,8 @@ _prepare() {
 
     if _confirm " Run cache cleaner?"; then
       # since we're on Windows, pretty safe to assume we have `sudo` command available
-      sudo -b sh -c "while sleep 150; do sync; echo 3 > /proc/sys/vm/drop_caches; : cache_cleaner; done"
-      _log raw  "To stop cache cleaner manually, use ${accent} sudo pkill -f cache_cleaner ${normal}"
+      sudo -b sh -c "while sleep 150; do sync; echo 3 > /proc/sys/vm/drop_caches; done"
+      _log raw  "To stop cache cleaner manually, use ${accent} sudo pkill -f 'while sleep 150.*drop_caches' ${normal}"
     fi
   fi
 
