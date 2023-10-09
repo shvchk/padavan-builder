@@ -62,9 +62,6 @@ _handle_exit() {
   if [[ -f $disk_img && ! -v PADAVAN_REUSE ]]; then
     _echo "\n If you don't plan to reuse sources, it's ok to delete virtual disk image"
     _confirm " Delete $disk_img disk image?" && rm -rf "$disk_img" "$mnt" &>> "$log_file"
-  elif [[ -d $mnt && ! -v PADAVAN_REUSE ]]; then
-    _echo "\n If you don't plan to reuse sources, it's ok to delete it"
-    _confirm " Delete sources directory ($mnt)?" && rm -rf "$mnt" &>> "$log_file"
   elif [[ ${PADAVAN_REUSE:-} == false ]]; then
     rm -rf "$disk_img" "$mnt" &>> "$log_file"
   fi
@@ -191,10 +188,11 @@ _prepare() {
   fi
 
   # if private, podman mounts don't use regular mounts and write to underlying dir instead
-  #if [[ $(findmnt -no PROPAGATION /) == private ]]; then
-  #  _log warn "Making root mount shared to use compressed virtual disk and save space"
-  #  $sudo mount --make-rshared /
-  #fi
+  if [[ $(findmnt -no PROPAGATION /) == private ]]; then
+    _log warn "Making root mount shared to use compressed virtual disk and save space"
+    $sudo mount --make-rshared /
+    podman system migrate
+  fi
 
   if _is_windows; then
     _log warn "Windows WSL has a bug, it doesn't release memory used for cache"
@@ -211,35 +209,22 @@ _prepare() {
     fi
   fi
 
-  if _is_windows; then
-    mnt="$container"
-
-    if [[ -d $mnt && ! -v PADAVAN_REUSE ]]; then
-      _log warn "Existing sources directory found"
-      _confirm " Reuse it (+) or delete and make a new one (-)?" || rm -rf "$mnt" &>> "$log_file"
-    elif [[ ${PADAVAN_REUSE:-} == false ]]; then
-        rm -rf "$mnt" &>> "$log_file"
-    fi
-
-    mkdir -p "$mnt"
-  else
-    if [[ -f $disk_img && ! -v PADAVAN_REUSE ]]; then
-      _log warn "Existing virtual disk found"
-      _confirm " Reuse it (+) or delete and make a new one (-)?" || rm -f "$disk_img" &>> "$log_file"
-    elif [[ ${PADAVAN_REUSE:-} == false ]]; then
-        rm -f "$disk_img" &>> "$log_file"
-    fi
-
-    # needs to be separate from previous check, since we could have deleted img there
-    if [[ ! -f $disk_img ]]; then
-      truncate -s 50G "$disk_img"
-      mkfs.btrfs "$disk_img" &>> "$log_file"
-    fi
-
-    mkdir -p "$mnt"
-    $sudo mount -o noatime,compress=zstd "$disk_img" "$mnt" &>> "$log_file"
-    $sudo chown -R $USER:$USER "$mnt" &>> "$log_file"
+  if [[ -f $disk_img && ! -v PADAVAN_REUSE ]]; then
+    _log warn "Existing virtual disk found"
+    _confirm " Reuse it (+) or delete and make a new one (-)?" || rm -f "$disk_img" &>> "$log_file"
+  elif [[ ${PADAVAN_REUSE:-} == false ]]; then
+      rm -f "$disk_img" &>> "$log_file"
   fi
+
+  # needs to be separate from previous check, since we could have deleted img there
+  if [[ ! -f $disk_img ]]; then
+    truncate -s 50G "$disk_img"
+    mkfs.btrfs "$disk_img" &>> "$log_file"
+  fi
+
+  mkdir -p "$mnt"
+  $sudo mount -o noatime,compress=zstd "$disk_img" "$mnt" &>> "$log_file"
+  $sudo chown -R $USER:$USER "$mnt" &>> "$log_file"
 }
 
 ctnr_exec() {
