@@ -10,7 +10,7 @@ img="registry.gitlab.com/a-shevchuk/padavan-ng"
 img_name="padavan-builder"
 container="padavan-builder"
 disk_img="${container}.btrfs"
-toolchain_url="${repo_url}/-/jobs/5199075640/artifacts/raw/toolchain.tzst"
+toolchain_url="${PADAVAN_TOOLCHAIN_URL:-https://gitlab.com/api/v4/projects/a-shevchuk%2Fpadavan-ng/packages/generic/toolchain/latest/toolchain.tzst}"
 
 # text decoration utilities
 normal=$(tput sgr0 ||:)
