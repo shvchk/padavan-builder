@@ -59,11 +59,13 @@ _handle_exit() {
     $sudo umount "$mnt" &>> "$log_file" || :
   fi
 
-  if [[ -f $disk_img && ! -v PADAVAN_REUSE ]]; then
-    _echo "\n If you don't plan to reuse sources, it's ok to delete virtual disk image"
-    _confirm " Delete $disk_img disk image?" && rm -rf "$disk_img" "$mnt" &>> "$log_file"
-  elif [[ ${PADAVAN_REUSE:-} == false ]]; then
-    rm -rf "$disk_img" "$mnt" &>> "$log_file"
+  if [[ -f $disk_img ]]; then
+    if _decide_delete_disk_img; then
+      _log raw "Deleting virtual disk image"
+      rm -rf "$disk_img" &>> "$log_file"
+    else
+      _log raw "Keeping virtual disk image"
+    fi
   fi
 
   # restore mtu
@@ -90,6 +92,35 @@ _is_windows() {
 
 
 # main functions
+
+_decide_reuse_disk_img() {
+  [[ ${PADAVAN_REUSE:-} == true ]] && return 0
+  [[ ${PADAVAN_REUSE:-} == false ]] && return 1
+  _confirm " Reuse it (+) or delete and create a new one (-)?" && return 0
+  return 1
+}
+
+_decide_reset_and_update_sources() {
+  [[ ${PADAVAN_UPDATE:-} == true ]] && return 0
+  [[ ${PADAVAN_UPDATE:-} == false ]] && return 1
+  _confirm " Reset and update sources (+) or proceed as is (-)?" && return 0
+  return 1
+}
+
+_decide_reuse_compiled() {
+  [[ ${PADAVAN_REUSE:-} == true ]] && return 0
+  [[ ${PADAVAN_REUSE:-} == false ]] && return 1
+  _confirm " Reuse previously compiled files (+) or delete and rebuild (-)?" && return 0
+  return 1
+}
+
+_decide_delete_disk_img() {
+  [[ ${PADAVAN_REUSE:-} == true ]] && return 1
+  [[ ${PADAVAN_REUSE:-} == false ]] && return 0
+  _echo "\n If you don't plan to reuse sources, it's ok to delete virtual disk image"
+  _confirm " Delete $disk_img disk image?" && return 0
+  return 1
+}
 
 _satisfy_dependencies() {
   deps=(btrfs-progs podman wget zstd)
@@ -195,15 +226,18 @@ _prepare() {
     _echo    " see ${accent} https://github.com/microsoft/WSL/issues/4166 "
     _echo
     _echo    " If you experience WSL crashes, you can run a periodic cache cleaner, which should help release memory:"
-    _echo    " ${accent} sudo sh -c 'while sleep 150; do sync; echo 3 > /proc/sys/vm/drop_caches; done' "
+    _echo    " ${accent} sudo sh -c 'while sleep 150; do sync; sysctl -q vm.drop_caches=3; done' "
     _echo    " You can then stop it at any time with ${accent} Ctrl + C "
   fi
 
-  if [[ -f $disk_img && ! -v PADAVAN_REUSE ]]; then
+  if [[ -f $disk_img ]]; then
     _log warn "Existing virtual disk found"
-    _confirm " Reuse it (+) or delete and make a new one (-)?" || rm -f "$disk_img" &>> "$log_file"
-  elif [[ ${PADAVAN_REUSE:-} == false ]]; then
+    if _decide_reuse_disk_img; then
+      _log info "Reusing existing disk"
+    else
+      _log info "Deleting existing disk and creating a new one"
       rm -f "$disk_img" &>> "$log_file"
+    fi
   fi
 
   # needs to be separate from previous check, since we could have deleted img there
@@ -299,7 +333,6 @@ _build_firmware() {
   _log info "Building firmware"
   _echo " This will take a while, usually 10-30 minutes"
   _echo "$log_follow_reminder"
-  ctnr_exec /opt/padavan-ng/trunk ./clear_tree.sh &>> "$log_file"
   ctnr_exec /opt/padavan-ng/trunk ./build_firmware.sh &>> "$log_file"
   _log raw "Done"
 }
@@ -326,25 +359,26 @@ _prepare
 
 _start_container
 
-if [[ -d "${mnt}/padavan-ng" && ! -v PADAVAN_REUSE ]]; then
-  _log warn "Existing sources directory found"
-  _confirm " Reuse it (+) or delete and start from scratch (-)?" || rm -rf "${mnt}/padavan-ng" &>> "$log_file"
-elif [[ ${PADAVAN_REUSE:-} == false ]]; then
-  rm -rf "${mnt}/padavan-ng" &>> "$log_file"
-fi
-
-# sources directory still available
 if [[ -d "${mnt}/padavan-ng" ]]; then
-  if [[ ${PADAVAN_UPDATE:-} == true ]] \
-  || _confirm " Reset and update sources (+) or proceed as is (-)?"; then
+  _log warn "Existing source code directory found"
+
+  if _decide_reset_and_update_sources; then
     _log info "Updating"
     _reset_and_update_sources &>> "$log_file"
-    _get_prebuilt_toolchain
+    _get_prebuilt_toolchain &>> "$log_file"
+  elif _decide_reuse_compiled; then
+    _log info "Cleaning only neccessary files"
+    ctnr_exec /opt/padavan-ng/trunk make -C user/httpd clean &>> "$log_file"
+    ctnr_exec /opt/padavan-ng/trunk make -C user/rc clean &>> "$log_file"
+    ctnr_exec /opt/padavan-ng/trunk make -C user/shared clean &>> "$log_file"
+  else
+    _log info "Cleaning"
+    ctnr_exec /opt/padavan-ng/trunk ./clear_tree.sh &>> "$log_file"
   fi
 else
   _log info "Downloading sources and toolchain"
-  ctnr_exec "" git clone --depth 1 -b "$branch" "$repo_url"
-  _get_prebuilt_toolchain
+  ctnr_exec "" git clone --depth 1 -b "$branch" "$repo_url" &>> "$log_file"
+  _get_prebuilt_toolchain &>> "$log_file"
 fi
 
 # use predefined config
