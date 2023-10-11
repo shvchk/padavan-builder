@@ -2,15 +2,17 @@
 
 set -euo pipefail
 
-dest_dir="$HOME"
-win_dest_dir="/mnt/c/Users/Public/Downloads/padavan"
-repo_url="${1:-${PADAVAN_REPO:-https://gitlab.com/a-shevchuk/padavan-ng}}"
-branch="${2:-${PADAVAN_BRANCH:-master}}"
-img="registry.gitlab.com/a-shevchuk/padavan-ng"
+: "${PADAVAN_REPO:=https://gitlab.com/a-shevchuk/padavan-ng.git}"
+: "${PADAVAN_BRANCH:=master}"
+: "${PADAVAN_TOOLCHAIN_URL:=https://gitlab.com/api/v4/projects/a-shevchuk%2Fpadavan-ng/packages/generic/toolchain/latest/toolchain.tzst}"
+: "${PADAVAN_IMAGE:=registry.gitlab.com/a-shevchuk/padavan-ng}"
+
 img_name="padavan-builder"
 container="padavan-builder"
 disk_img="${container}.btrfs"
-toolchain_url="${PADAVAN_TOOLCHAIN_URL:-https://gitlab.com/api/v4/projects/a-shevchuk%2Fpadavan-ng/packages/generic/toolchain/latest/toolchain.tzst}"
+tmp_dir="$(mktemp -d)"
+mnt="${tmp_dir}/mnt"
+log_file="${tmp_dir}/${container}.log"
 
 # text decoration utilities
 normal=$(tput sgr0 ||:)
@@ -19,14 +21,6 @@ info_msg="$(tput setab 33 && tput setaf 231 ||:)${bold}" # blue bg, white text
 warn_msg="$(tput setab 220 && tput setaf 16 ||:)${bold}" # yellow bg, black text
 accent="$(tput setab 238 && tput setaf 231 ||:)${bold}" # gray bg, white text
 
-tmp_dir="$(mktemp -d)"
-mnt="${tmp_dir}/mnt"
-log_file="${tmp_dir}/${container}.log"
-log_follow_reminder=" You can follow the log live in another terminal with ${accent} tail -f '$log_file' "
-
-(( $(id -u) > 0 )) && sudo="sudo" || sudo=""
-
-# helper functions
 
 _echo() {
   # unset formatting after output
@@ -43,38 +37,6 @@ _log() {
   esac
 }
 
-_handle_exit() {
-  if [[ $? != 0 ]]; then
-    _echo "\n${warn_msg} Error occured, please check log: ${normal}${bold} ${log_file}"
-    _echo " Failed command: $BASH_COMMAND"
-  fi
-
-  set +euo pipefail
-
-  _log warn "Cleaning"
-  podman container exists "$container" && podman rm -f "$container" &>> "$log_file"
-
-  if grep -qsE "^\S+ $(realpath "$mnt") " /proc/mounts; then
-    _log raw "Unmounting compressed virtual disk"
-    $sudo umount "$mnt" &>> "$log_file" || :
-  fi
-
-  if [[ -f $disk_img ]]; then
-    if _decide_delete_disk_img; then
-      _log raw "Deleting virtual disk image"
-      rm -rf "$disk_img" &>> "$log_file"
-    else
-      _log raw "Keeping virtual disk image"
-    fi
-  fi
-
-  # restore mtu
-  if (( ${wan_mtu:-0} > 1280 )); then
-    _log raw "Setting back network MTU"
-    $sudo ip link set "$wan" mtu "$wan_mtu"
-  fi
-}
-
 _confirm() {
   while echo; do
     # `< /dev/tty` is required to be able to run via pipe: cat x.sh | bash
@@ -89,9 +51,6 @@ _confirm() {
 _is_windows() {
   [[ -f /proc/sys/fs/binfmt_misc/WSLInterop ]]
 }
-
-
-# main functions
 
 _decide_reuse_disk_img() {
   [[ ${PADAVAN_REUSE:-} == true ]] && return 0
@@ -260,8 +219,8 @@ _start_container() {
   _log info "Starting container to build firmware"
   # `podman pull` needed to support older podman versions,
   # which don't have `podman run --pull newer`, like on Debian 11
-  podman pull "$img" &>> "$log_file"
-  podman run --rm -dt -v "$(realpath "$mnt")":/opt --name "$container" "$img" &>> "$log_file"
+  podman pull "$PADAVAN_IMAGE" &>> "$log_file"
+  podman run --rm -dt -v "$(realpath "$mnt")":/opt --name "$container" "$PADAVAN_IMAGE" &>> "$log_file"
 }
 
 _reset_and_update_sources() {
@@ -275,7 +234,20 @@ _reset_and_update_sources() {
 }
 
 _get_prebuilt_toolchain() {
-  wget -qO- "$toolchain_url" | tar -C "${mnt}/padavan-ng" --zstd -xf -
+  wget -qO- "$PADAVAN_TOOLCHAIN_URL" | tar -C "${mnt}/padavan-ng" --zstd -xf -
+}
+
+_get_destination_path() {
+  local dest="$HOME"
+
+  [[ -n ${PADAVAN_DEST:-} ]] && dest="$PADAVAN_DEST"
+
+  if _is_windows; then
+    windows_dest="$(powershell.exe "(New-Object -ComObject Shell.Application).NameSpace('shell:Downloads').Self.Path")"
+    dest="$(wslpath "$windows_dest")"
+  fi
+
+  echo -n "$dest"
 }
 
 _prepare_build_config() {
@@ -337,58 +309,90 @@ _build_firmware() {
   _log raw "Done"
 }
 
-_copy_firmware_to_host() {
-  _echo " Copying firmware to $dest_dir"
+_copy_artifacts() {
+  _echo " Copying to $1"
 
-  # if we are in WSL, $dest_dir is $win_dest_dir
-  _is_windows && dest_dir="$win_dest_dir"
-
-  mkdir -p "$dest_dir"
-  cp -v "${mnt}"/padavan-ng/trunk/images/*trx "$dest_dir"
+  mkdir -p "$1"
+  cp -v "${mnt}"/padavan-ng/trunk/images/*trx "$1"
 
   . <(grep "^CONFIG_FIRMWARE_PRODUCT_ID=" "${mnt}/padavan-ng/trunk/.config")
-  cp -v "${mnt}/padavan-ng/trunk/.config" "${dest_dir}/${CONFIG_FIRMWARE_PRODUCT_ID}_$(date '+%Y.%m.%d_%H.%M.%S').config"
+  cp -v "${mnt}/padavan-ng/trunk/.config" "${1}/${CONFIG_FIRMWARE_PRODUCT_ID}_$(date '+%Y.%m.%d_%H.%M.%S').config"
+}
+
+_handle_exit() {
+  if [[ $? != 0 ]]; then
+    _echo "\n${warn_msg} Error occured, please check log: ${normal}${bold} ${log_file}"
+    _echo " Failed command: $BASH_COMMAND"
+  fi
+
+  set +euo pipefail
+
+  _log warn "Cleaning"
+  podman container exists "$container" && podman rm -f "$container" &>> "$log_file"
+
+  if grep -qsE "^\S+ $(realpath "$mnt") " /proc/mounts; then
+    _log raw "Unmounting compressed virtual disk"
+    $sudo umount "$mnt" &>> "$log_file" || :
+  fi
+
+  if [[ -f $disk_img ]]; then
+    if _decide_delete_disk_img; then
+      _log raw "Deleting virtual disk image"
+      rm -rf "$disk_img" &>> "$log_file"
+    else
+      _log raw "Keeping virtual disk image"
+    fi
+  fi
+
+  # restore mtu
+  if (( ${wan_mtu:-0} > 1280 )); then
+    _log raw "Setting back network MTU"
+    $sudo ip link set "$wan" mtu "$wan_mtu"
+  fi
+}
+
+_main() {
+  (( $(id -u) > 0 )) && sudo="sudo" || sudo=""
+  log_follow_reminder=" You can follow the log live in another terminal with ${accent} tail -f '$log_file' "
+
+  _prepare
+  _start_container
+
+  if [[ -d "${mnt}/padavan-ng" ]]; then
+    _log warn "Existing source code directory found"
+
+    if _decide_reset_and_update_sources; then
+      _log info "Updating"
+      _reset_and_update_sources &>> "$log_file"
+      _get_prebuilt_toolchain &>> "$log_file"
+    elif _decide_reuse_compiled; then
+      _log info "Cleaning only neccessary files"
+      ctnr_exec /opt/padavan-ng/trunk make -C user/httpd clean &>> "$log_file"
+      ctnr_exec /opt/padavan-ng/trunk make -C user/rc clean &>> "$log_file"
+      ctnr_exec /opt/padavan-ng/trunk make -C user/shared clean &>> "$log_file"
+    else
+      _log info "Cleaning"
+      ctnr_exec /opt/padavan-ng/trunk ./clear_tree.sh &>> "$log_file"
+    fi
+  else
+    _log info "Downloading sources and toolchain"
+    ctnr_exec "" git clone --depth 1 -b "$PADAVAN_BRANCH" "$PADAVAN_REPO" &>> "$log_file"
+    _get_prebuilt_toolchain &>> "$log_file"
+  fi
+
+  # use predefined config
+  if [[ -n ${PADAVAN_CONFIG:-} ]]; then
+    cp "$PADAVAN_CONFIG" "${mnt}/padavan-ng/trunk/.config"
+  else
+    _prepare_build_config
+  fi
+
+  _build_firmware
+  _copy_artifacts "$(_get_destination_path)"
+
+  _log info "All done"
 }
 
 
-# main
-
 trap _handle_exit EXIT
-
-_prepare
-
-_start_container
-
-if [[ -d "${mnt}/padavan-ng" ]]; then
-  _log warn "Existing source code directory found"
-
-  if _decide_reset_and_update_sources; then
-    _log info "Updating"
-    _reset_and_update_sources &>> "$log_file"
-    _get_prebuilt_toolchain &>> "$log_file"
-  elif _decide_reuse_compiled; then
-    _log info "Cleaning only neccessary files"
-    ctnr_exec /opt/padavan-ng/trunk make -C user/httpd clean &>> "$log_file"
-    ctnr_exec /opt/padavan-ng/trunk make -C user/rc clean &>> "$log_file"
-    ctnr_exec /opt/padavan-ng/trunk make -C user/shared clean &>> "$log_file"
-  else
-    _log info "Cleaning"
-    ctnr_exec /opt/padavan-ng/trunk ./clear_tree.sh &>> "$log_file"
-  fi
-else
-  _log info "Downloading sources and toolchain"
-  ctnr_exec "" git clone --depth 1 -b "$branch" "$repo_url" &>> "$log_file"
-  _get_prebuilt_toolchain &>> "$log_file"
-fi
-
-# use predefined config
-if [[ -n ${PADAVAN_CONFIG:-} ]]; then
-  cp "$PADAVAN_CONFIG" "${mnt}/padavan-ng/trunk/.config"
-else
-  _prepare_build_config
-fi
-
-_build_firmware
-_copy_firmware_to_host
-
-_log info "All done"
+_main
