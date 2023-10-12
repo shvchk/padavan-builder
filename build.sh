@@ -255,7 +255,6 @@ _get_destination_path() {
 
 _prepare_build_config() {
   _log info "Preparing build config"
-  build_config="$tmp_dir/padavan-build.config"
   config_selection_header=$(printf "%s\n" "${warn_msg} Select your router model ${normal}" \
                                           " Filter by entering text" \
                                           " Select by mouse or arrow keys" \
@@ -266,7 +265,7 @@ _prepare_build_config() {
   config_file="$(find "$mnt/$project" -type f -path "$configs_glob" | \
                 fzf +m -e -d / --with-nth ${#configs_glob_slashes}.. --reverse --no-info --bind=esc:ignore --header-first --header "$config_selection_header")"
 
-  cp "$config_file" "$build_config"
+  cp "$config_file" "$mnt/$project/trunk/.config"
 
   _echo "\n${warn_msg} Edit the build config file "
   _echo
@@ -275,13 +274,9 @@ _prepare_build_config() {
   _echo " To disable a feature, comment its variable by putting ${accent} # ${normal} at the beginning of the line"
   _echo
   _echo " Example:"
-  _echo " Enable WireGuard:"
-  _echo " ${accent} CONFIG_FIRMWARE_INCLUDE_WIREGUARD=y "
-  _echo "  ^ no ${accent} # ${normal} at the beginning of the line"
-  _echo
-  _echo " Disable WireGuard:"
-  _echo " ${accent} #CONFIG_FIRMWARE_INCLUDE_WIREGUARD=y "
-  _echo "  ^ ${accent} # ${normal} at the beginning of the line"
+  _echo " Enable WireGuard:                       │  Disable WireGuard:"
+  _echo " ${accent} CONFIG_FIRMWARE_INCLUDE_WIREGUARD=y ${normal}   │  ${accent} #CONFIG_FIRMWARE_INCLUDE_WIREGUARD=y "
+  _echo "  ^ no ${accent} # ${normal} at the beginning of the line  │   ^ ${accent} # ${normal} at the beginning of the line"
   _echo
   _echo
   _echo " The text editor supports mouse, clipboard, and common editing and navigation methods:"
@@ -294,14 +289,10 @@ _prepare_build_config() {
   read -rsp " Press ${warn_msg} Enter ${normal} to start the config editor" < /dev/tty; echo
 
   if [[ -n $PADAVAN_EDITOR ]]; then
-    $PADAVAN_EDITOR "$build_config"
+    $PADAVAN_EDITOR "$mnt/$project/trunk/.config"
   else
-    micro -autosave 1 -ignorecase 1 -keymenu 1 -scrollbar 1 -filetype shell "$build_config"
+    micro -autosave 1 -ignorecase 1 -keymenu 1 -scrollbar 1 -filetype shell "$mnt/$project/trunk/.config"
   fi
-
-  cp "$build_config" "$mnt/$project/trunk/.config"
-
-  _echo " Build config backup: $build_config"
 }
 
 _build_firmware() {
