@@ -6,6 +6,12 @@ set -euo pipefail
 : "${PADAVAN_BRANCH:=master}"
 : "${PADAVAN_TOOLCHAIN_URL:=https://gitlab.com/api/v4/projects/a-shevchuk%2Fpadavan-ng/packages/generic/toolchain/latest/toolchain.tzst}"
 : "${PADAVAN_IMAGE:=registry.gitlab.com/a-shevchuk/padavan-ng}"
+: "${PADAVAN_BUILDER_CONFIG:=${XDG_CONFIG_HOME:-${HOME}/.config}/padavan-builder}"
+: "${PADAVAN_CONFIG:=}"
+: "${PADAVAN_EDITOR:=}"
+: "${PADAVAN_DEST:=}"
+: "${PADAVAN_REUSE:=}"
+: "${PADAVAN_UPDATE:=}"
 
 img_name="padavan-builder"
 container="padavan-builder"
@@ -53,29 +59,29 @@ _is_windows() {
 }
 
 _decide_reuse_disk_img() {
-  [[ ${PADAVAN_REUSE:-} == true ]] && return 0
-  [[ ${PADAVAN_REUSE:-} == false ]] && return 1
+  [[ $PADAVAN_REUSE == true ]] && return 0
+  [[ $PADAVAN_REUSE == false ]] && return 1
   _confirm " Reuse it (+) or delete and create a new one (-)?" && return 0
   return 1
 }
 
 _decide_reset_and_update_sources() {
-  [[ ${PADAVAN_UPDATE:-} == true ]] && return 0
-  [[ ${PADAVAN_UPDATE:-} == false ]] && return 1
+  [[ $PADAVAN_UPDATE == true ]] && return 0
+  [[ $PADAVAN_UPDATE == false ]] && return 1
   _confirm " Reset and update sources (+) or proceed as is (-)?" && return 0
   return 1
 }
 
 _decide_reuse_compiled() {
-  [[ ${PADAVAN_REUSE:-} == true ]] && return 0
-  [[ ${PADAVAN_REUSE:-} == false ]] && return 1
+  [[ $PADAVAN_REUSE == true ]] && return 0
+  [[ $PADAVAN_REUSE == false ]] && return 1
   _confirm " Reuse previously compiled files (+) or delete and rebuild (-)?" && return 0
   return 1
 }
 
 _decide_delete_disk_img() {
-  [[ ${PADAVAN_REUSE:-} == true ]] && return 1
-  [[ ${PADAVAN_REUSE:-} == false ]] && return 0
+  [[ $PADAVAN_REUSE == true ]] && return 1
+  [[ $PADAVAN_REUSE == false ]] && return 0
   _echo "\n If you don't plan to reuse sources, it's ok to delete virtual disk image"
   _confirm " Delete $disk_img disk image?" && return 0
   return 1
@@ -85,12 +91,12 @@ _satisfy_dependencies() {
   deps=(btrfs-progs podman wget zstd)
   dep_cmds=(mkfs.btrfs podman wget zstd)
 
-  if [[ -z ${PADAVAN_EDITOR:-} ]]; then
+  if [[ -z $PADAVAN_EDITOR ]]; then
     deps+=(micro)
     dep_cmds+=(micro)
   fi
 
-  if [[ -z ${PADAVAN_CONFIG:-} ]]; then
+  if [[ -z $PADAVAN_CONFIG ]]; then
     deps+=(fzf micro)
     dep_cmds+=(fzf micro)
   fi
@@ -240,7 +246,7 @@ _get_prebuilt_toolchain() {
 _get_destination_path() {
   local dest="$HOME"
 
-  [[ -n ${PADAVAN_DEST:-} ]] && dest="$PADAVAN_DEST"
+  [[ -n $PADAVAN_DEST ]] && dest="$PADAVAN_DEST"
 
   if _is_windows; then
     windows_dest="$(powershell.exe "(New-Object -ComObject Shell.Application).NameSpace('shell:Downloads').Self.Path")"
@@ -290,7 +296,7 @@ _prepare_build_config() {
   _echo
   read -rsp " Press ${warn_msg} Enter ${normal} to start the config editor" < /dev/tty; echo
 
-  if [[ -n ${PADAVAN_EDITOR:-} ]]; then
+  if [[ -n $PADAVAN_EDITOR ]]; then
     $PADAVAN_EDITOR "$build_config"
   else
     micro -autosave 1 -ignorecase 1 -keymenu 1 -scrollbar 1 -filetype shell "$build_config"
@@ -353,6 +359,7 @@ _handle_exit() {
 
 _main() {
   (( $(id -u) > 0 )) && sudo="sudo" || sudo=""
+  [[ -f $PADAVAN_BUILDER_CONFIG ]] && . "$PADAVAN_BUILDER_CONFIG"
   log_follow_reminder=" You can follow the log live in another terminal with ${accent} tail -f '$log_file' "
 
   _prepare
@@ -381,7 +388,7 @@ _main() {
   fi
 
   # use predefined config
-  if [[ -n ${PADAVAN_CONFIG:-} ]]; then
+  if [[ -n $PADAVAN_CONFIG ]]; then
     cp "$PADAVAN_CONFIG" "${mnt}/padavan-ng/trunk/.config"
   else
     _prepare_build_config
