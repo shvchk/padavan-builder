@@ -101,11 +101,6 @@ _satisfy_dependencies() {
     dep_cmds+=(fzf micro)
   fi
 
-  if _is_windows; then
-    deps+=(procps)
-    dep_cmds+=(pkill)
-  fi
-
   deps_satisfied=0
   for i in "${dep_cmds[@]}"; do
     command -v "$i" &> /dev/null && (( ++deps_satisfied ))
@@ -123,7 +118,6 @@ _satisfy_dependencies() {
         $sudo apk add --no-cache --no-interactive "${deps[@]}" &>> "$log_file" ;;
 
       *arch*)
-        deps=("${deps[@]/procps/procps-ng}")
         $sudo pacman -Syu --noconfirm "${deps[@]}" &>> "$log_file" ;;
 
       *debian*|*ubuntu*)
@@ -131,7 +125,6 @@ _satisfy_dependencies() {
         $sudo apt install -y "${deps[@]}" &>> "$log_file" ;;
 
       *fedora*|*rhel*)
-        deps=("${deps[@]/procps/procps-ng}")
         $sudo dnf install -y "${deps[@]}" &>> "$log_file" ;;
 
       *suse*)
