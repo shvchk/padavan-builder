@@ -44,7 +44,7 @@ log() {
 
   case "$type" in
     raw*)         _echo "\n $*" ;;&
-    info*|warn*)  _echo "\n${!type} $* " ;;
+    info*|warn*|err*)  _echo "\n${!type} $* " ;;
   esac
 }
 
