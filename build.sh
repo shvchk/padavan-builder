@@ -29,6 +29,7 @@ log_file="$tmp_dir/$container.log"
   bold=$(tput bold ||:)
   info_msg="$(tput setab 33 && tput setaf 231 ||:)$bold" # blue bg, white text
   warn_msg="$(tput setab 220 && tput setaf 16 ||:)$bold" # yellow bg, black text
+  err_msg="$(tput setab 196 && tput setaf 231 ||:)$bold" # red bg, white text
   accent="$(tput setab 238 && tput setaf 231 ||:)$bold" # gray bg, white text
 }
 
@@ -92,8 +93,8 @@ decide_delete_disk_img() {
 }
 
 satisfy_dependencies() {
-  deps=(btrfs-progs podman wget zstd)
-  dep_cmds=(mkfs.btrfs podman wget zstd)
+  deps=(btrfs-progs coreutils gawk grep podman wget zstd)
+  dep_cmds=(awk grep mkfs.btrfs podman wget zstd)
 
   if [[ -z $PADAVAN_EDITOR ]]; then
     deps+=(micro)
@@ -307,18 +308,24 @@ copy_artifacts() {
   _echo " Copying to $1"
 
   mkdir -p "$1"
-  cp -v "$mnt/$project"/trunk/images/*trx "$1"
-
-  # shellcheck disable=SC1090
-  . <(grep "^CONFIG_FIRMWARE_PRODUCT_ID=" "$mnt/$project/trunk/.config")
+  cp -v "$mnt/$project"/trunk/images/*.trx "$1"
   cp -v "$mnt/$project/trunk/.config" "$1/${CONFIG_FIRMWARE_PRODUCT_ID}_$(date '+%Y.%m.%d_%H.%M.%S').config"
 }
 
+check_firmware_size() {
+  partitions="$mnt/$project/trunk/configs/boards/$CONFIG_VENDOR/$CONFIG_FIRMWARE_PRODUCT_ID/partitions.config"
+  max_fw_size="$(awk '/Firmware/ { getline; getline; sub(",", ""); print strtonum($2); }' "$partitions")"
+  fw_size="$(find "$mnt/$project/trunk/images" -iname "*.trx" -printf "%T@\t%s\n" | sort -V | tail -1 | cut -f2)"
+
+  if ((fw_size > max_fw_size)); then
+    log err "Firmware size ($fw_size bytes) exceeds max size ($max_fw_size bytes) for your target device"
+  fi
+}
 
 
 handle_exit() {
   if [[ $? != 0 ]]; then
-    _echo "\n${warn_msg} Error occured, please check log: ${normal}${bold} $log_file"
+    _echo "\n${err_msg} Error occured, please check log: ${normal}${bold} $log_file"
     _echo " Failed command: $BASH_COMMAND"
   fi
 
@@ -387,8 +394,13 @@ main() {
     prepare_build_config
   fi
 
+  # get variables from build config
+  # shellcheck disable=SC1090
+  . <(grep "^CONFIG_" "$mnt/$project/trunk/.config")
+
   build_firmware
   copy_artifacts "$(get_destination_path)"
+  check_firmware_size
 
   log info "All done"
 }
