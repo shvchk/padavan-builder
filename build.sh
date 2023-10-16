@@ -29,7 +29,7 @@ log_file="$tmp_dir/$container.log"
   bold=$(tput bold ||:)
   info_msg="$(tput setab 33 && tput setaf 231 ||:)$bold" # blue bg, white text
   warn_msg="$(tput setab 220 && tput setaf 16 ||:)$bold" # yellow bg, black text
-  err_msg="$(tput setab 196 && tput setaf 231 ||:)$bold" # red bg, white text
+  err_msg="$(tput setab 160 && tput setaf 231 ||:)$bold" # red bg, white text
   accent="$(tput setab 238 && tput setaf 231 ||:)$bold" # gray bg, white text
 }
 
