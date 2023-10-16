@@ -43,7 +43,7 @@ log() {
   echo -e "$(date +'%Y.%m.%d %H:%M:%S') - $*" &>> "$log_file"
 
   case "$type" in
-    raw*)         _echo "\n $*" ;;&
+    raw*)              _echo "\n $*"          ;;
     info*|warn*|err*)  _echo "\n${!type} $* " ;;
   esac
 }
