@@ -264,7 +264,8 @@ prepare_build_config() {
   configs_glob="$mnt/$project/trunk/configs/templates/*/*config"
   configs_glob_slashes=${configs_glob//[^\/]/} # used to tell fzf how much of the path to skip
   config_file="$(find "$mnt/$project" -type f -path "$configs_glob" | \
-                fzf +m -e -d / --with-nth ${#configs_glob_slashes}.. --reverse --no-info --bind=esc:ignore --header-first --header "$config_selection_header")"
+                fzf +m -e -d / --with-nth ${#configs_glob_slashes}.. \
+                --reverse --no-info --bind=esc:ignore --header-first --header "$config_selection_header")"
 
   cp "$config_file" "$mnt/$project/trunk/.config"
 
@@ -318,7 +319,7 @@ check_firmware_size() {
   fw_size="$(find "$mnt/$project/trunk/images" -iname "*.trx" -printf "%T@\t%s\n" | sort -V | tail -1 | cut -f2)"
 
   if ((fw_size > max_fw_size)); then
-    log err "Firmware size ($fw_size bytes) exceeds max size ($max_fw_size bytes) for your target device"
+    log err "Firmware size ($(numfmt --grouping "$fw_size") bytes) exceeds max size ($(numfmt --grouping "$max_fw_size") bytes) for your target device"
   fi
 }
 
