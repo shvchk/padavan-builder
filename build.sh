@@ -37,7 +37,7 @@ _echo() {
   echo -e "${*}$normal"
 }
 
-_log() {
+log() {
   type=${1}_msg; shift
   echo -e "$(date +'%Y.%m.%d %H:%M:%S') - $*" &>> "$log_file"
 
@@ -47,7 +47,7 @@ _log() {
   esac
 }
 
-_confirm() {
+confirm() {
   while echo; do
     # `< /dev/tty` is required to be able to run via pipe: cat x.sh | bash
     read -rp "$* [ + or - ]: " confirmation < /dev/tty || { echo "No tty"; exit 1; }
@@ -58,40 +58,40 @@ _confirm() {
   done
 }
 
-_is_windows() {
+is_windows() {
   [[ -f /proc/sys/fs/binfmt_misc/WSLInterop ]]
 }
 
-_decide_reuse_disk_img() {
+decide_reuse_disk_img() {
   [[ $PADAVAN_REUSE == true ]] && return 0
   [[ $PADAVAN_REUSE == false ]] && return 1
-  _confirm " Reuse it (+) or delete and create a new one (-)?" && return 0
+  confirm " Reuse it (+) or delete and create a new one (-)?" && return 0
   return 1
 }
 
-_decide_reset_and_update_sources() {
+decide_reset_and_update_sources() {
   [[ $PADAVAN_UPDATE == true ]] && return 0
   [[ $PADAVAN_UPDATE == false ]] && return 1
-  _confirm " Reset and update sources (+) or proceed as is (-)?" && return 0
+  confirm " Reset and update sources (+) or proceed as is (-)?" && return 0
   return 1
 }
 
-_decide_reuse_compiled() {
+decide_reuse_compiled() {
   [[ $PADAVAN_REUSE == true ]] && return 0
   [[ $PADAVAN_REUSE == false ]] && return 1
-  _confirm " Reuse previously compiled files (+) or delete and rebuild (-)?" && return 0
+  confirm " Reuse previously compiled files (+) or delete and rebuild (-)?" && return 0
   return 1
 }
 
-_decide_delete_disk_img() {
+decide_delete_disk_img() {
   [[ $PADAVAN_REUSE == true ]] && return 1
   [[ $PADAVAN_REUSE == false ]] && return 0
   _echo "\n If you don't plan to reuse sources, it's ok to delete virtual disk image"
-  _confirm " Delete $disk_img disk image?" && return 0
+  confirm " Delete $disk_img disk image?" && return 0
   return 1
 }
 
-_satisfy_dependencies() {
+satisfy_dependencies() {
   deps=(btrfs-progs podman wget zstd)
   dep_cmds=(mkfs.btrfs podman wget zstd)
 
@@ -111,7 +111,7 @@ _satisfy_dependencies() {
   done
 
   if (( deps_satisfied < ${#dep_cmds[@]} )); then
-    _log info "Installing podman and utilities"
+    log info "Installing podman and utilities"
     ID=""
     ID_LIKE=""
 
@@ -138,24 +138,24 @@ _satisfy_dependencies() {
         $sudo zypper --non-interactive install "${deps[@]}" &>> "$log_file" ;;
 
       *)
-        _log warn "Unknown OS, can't install dependencies"
+        log warn "Unknown OS, can't install dependencies"
         _echo     " Please install these packages manually:"
         _echo     " ${deps[*]}"
 
-        _confirm " Continue anyway (+) or exit (-)?" || exit 1
+        confirm " Continue anyway (+) or exit (-)?" || exit 1
         ;;
     esac
   fi
 }
 
-_prepare() {
+prepare() {
   echo "$(date +'%Y.%m.%d %H:%M:%S') - Starting" > "$log_file"
   _echo "\n${info_msg} Log file: ${normal}${bold} $log_file"
   _echo "$log_follow_reminder"
 
-  _satisfy_dependencies
+  satisfy_dependencies
 
-  _log info "Applying required system settings"
+  log info "Applying required system settings"
 
   export STORAGE_DRIVER="overlay"
   export STORAGE_OPTS="overlay.mountopt=volatile"
@@ -163,7 +163,7 @@ _prepare() {
   # increase open files limit
   ulimit -Sn "$(ulimit -Hn)"
   if (( $(ulimit -Sn) < 4096 )); then
-    _log warn "Limit on open files: $(ulimit -Sn). Sometimes that is not enough to build the toolchain"
+    log warn "Limit on open files: $(ulimit -Sn). Sometimes that is not enough to build the toolchain"
   fi
 
   # fix network mtu issues
@@ -171,19 +171,19 @@ _prepare() {
   wan_mtu="$(cat "/sys/class/net/$wan/mtu" ||:)"
 
   if (( wan_mtu > 1280 )); then
-    _log warn "Changing MTU to 1280 to fix various possible network issues"
+    log warn "Changing MTU to 1280 to fix various possible network issues"
     _echo     " It will be reverted back aftewards"
     $sudo ip link set "$wan" mtu 1280
   fi
 
   # if private, podman mounts don't use regular mounts and write to underlying dir instead
   if [[ $(findmnt -no PROPAGATION /) == private ]]; then
-    _log warn "Making root mount shared to use compressed virtual disk and save space"
+    log warn "Making root mount shared to use compressed virtual disk and save space"
     $sudo mount --make-rshared /
     podman system migrate
   fi
 
-  if _is_windows; then
+  if is_windows; then
     _echo "\n${warn_msg} Windows Subsystem for Linux (WSL) has a bug: it doesn't release memory used for file cache"
     _echo " On file intensive operations it can consume all memory and crash"
     _echo " see ${accent} https://github.com/microsoft/WSL/issues/4166 "
@@ -194,11 +194,11 @@ _prepare() {
   fi
 
   if [[ -f $disk_img ]]; then
-    _log warn "Existing virtual disk found"
-    if _decide_reuse_disk_img; then
-      _log info "Reusing existing disk"
+    log warn "Existing virtual disk found"
+    if decide_reuse_disk_img; then
+      log info "Reusing existing disk"
     else
-      _log info "Deleting existing disk and creating a new one"
+      log info "Deleting existing disk and creating a new one"
       rm -f "$disk_img" &>> "$log_file"
     fi
   fi
@@ -219,15 +219,15 @@ ctnr_exec() {
   podman exec -w "$work_dir" "$container" "$@" &>> "$log_file"
 }
 
-_start_container() {
-  _log info "Starting container to build firmware"
+start_container() {
+  log info "Starting container to build firmware"
   # `podman pull` needed to support older podman versions,
   # which don't have `podman run --pull newer`, like on Debian 11
   podman pull "$PADAVAN_IMAGE" &>> "$log_file"
   podman run --rm -dt -v "$(realpath "$mnt")":/opt --name "$container" "$PADAVAN_IMAGE" &>> "$log_file"
 }
 
-_reset_and_update_sources() {
+reset_and_update_sources() {
   pushd "$mnt/$project"
   git reset --hard
   git clean -dfx
@@ -236,16 +236,16 @@ _reset_and_update_sources() {
   popd
 }
 
-_get_prebuilt_toolchain() {
+get_prebuilt_toolchain() {
   wget -qO- "$PADAVAN_TOOLCHAIN_URL" | tar -C "$mnt/$project" --zstd -xf -
 }
 
-_get_destination_path() {
+get_destination_path() {
   local dest="$HOME"
 
   [[ -n $PADAVAN_DEST ]] && dest="$PADAVAN_DEST"
 
-  if _is_windows; then
+  if is_windows; then
     windows_dest="$(powershell.exe "(New-Object -ComObject Shell.Application).NameSpace('shell:Downloads').Self.Path")"
     dest="$(wslpath "$windows_dest")"
   fi
@@ -253,8 +253,8 @@ _get_destination_path() {
   echo -n "$dest"
 }
 
-_prepare_build_config() {
-  _log info "Preparing build config"
+prepare_build_config() {
+  log info "Preparing build config"
   config_selection_header=$(printf "%s\n" "${warn_msg} Select your router model ${normal}" \
                                           " Filter by entering text" \
                                           " Select by mouse or arrow keys" \
@@ -295,15 +295,15 @@ _prepare_build_config() {
   fi
 }
 
-_build_firmware() {
-  _log info "Building firmware"
+build_firmware() {
+  log info "Building firmware"
   _echo " This will take a while, usually 10-30 minutes"
   _echo "$log_follow_reminder"
   ctnr_exec "/opt/$project/trunk" ./build_firmware.sh &>> "$log_file"
-  _log raw "Done"
+  log raw "Done"
 }
 
-_copy_artifacts() {
+copy_artifacts() {
   _echo " Copying to $1"
 
   mkdir -p "$1"
@@ -314,7 +314,9 @@ _copy_artifacts() {
   cp -v "$mnt/$project/trunk/.config" "$1/${CONFIG_FIRMWARE_PRODUCT_ID}_$(date '+%Y.%m.%d_%H.%M.%S').config"
 }
 
-_handle_exit() {
+
+
+handle_exit() {
   if [[ $? != 0 ]]; then
     _echo "\n${warn_msg} Error occured, please check log: ${normal}${bold} $log_file"
     _echo " Failed command: $BASH_COMMAND"
@@ -322,75 +324,75 @@ _handle_exit() {
 
   set +euo pipefail
 
-  _log warn "Cleaning"
+  log warn "Cleaning"
   podman container exists "$container" && podman rm -f "$container" &>> "$log_file"
 
   if grep -qsE "^\S+ $(realpath "$mnt") " /proc/mounts; then
-    _log raw "Unmounting compressed virtual disk"
+    log raw "Unmounting compressed virtual disk"
     $sudo umount "$mnt" &>> "$log_file" || :
   fi
 
   if [[ -f $disk_img ]]; then
-    if _decide_delete_disk_img; then
-      _log raw "Deleting virtual disk image"
+    if decide_delete_disk_img; then
+      log raw "Deleting virtual disk image"
       rm -rf "$disk_img" &>> "$log_file"
     else
-      _log raw "Keeping virtual disk image"
+      log raw "Keeping virtual disk image"
     fi
   fi
 
   # restore mtu
   if (( ${wan_mtu:-0} > 1280 )); then
-    _log raw "Setting back network MTU"
+    log raw "Setting back network MTU"
     $sudo ip link set "$wan" mtu "$wan_mtu"
   fi
 }
 
-_main() {
+main() {
   (( $(id -u) > 0 )) && sudo="sudo" || sudo=""
 
   # shellcheck disable=SC1090
   [[ -f $PADAVAN_BUILDER_CONFIG ]] && . "$PADAVAN_BUILDER_CONFIG"
   log_follow_reminder=" You can follow the log live in another terminal with ${accent} tail -f '$log_file' "
 
-  _prepare
-  _start_container
+  prepare
+  start_container
 
   if [[ -d $mnt/$project ]]; then
-    _log warn "Existing source code directory found"
+    log warn "Existing source code directory found"
 
-    if _decide_reset_and_update_sources; then
-      _log info "Updating"
-      _reset_and_update_sources &>> "$log_file"
-      _get_prebuilt_toolchain &>> "$log_file"
-    elif _decide_reuse_compiled; then
-      _log info "Cleaning only neccessary files"
+    if decide_reset_and_update_sources; then
+      log info "Updating"
+      reset_and_update_sources &>> "$log_file"
+      get_prebuilt_toolchain &>> "$log_file"
+    elif decide_reuse_compiled; then
+      log info "Cleaning only neccessary files"
       ctnr_exec "/opt/$project/trunk" make -C user/httpd clean &>> "$log_file"
       ctnr_exec "/opt/$project/trunk" make -C user/rc clean &>> "$log_file"
       ctnr_exec "/opt/$project/trunk" make -C user/shared clean &>> "$log_file"
     else
-      _log info "Cleaning"
+      log info "Cleaning"
       ctnr_exec "/opt/$project/trunk" ./clear_tree.sh &>> "$log_file"
     fi
   else
-    _log info "Downloading sources and toolchain"
+    log info "Downloading sources and toolchain"
     ctnr_exec "" git clone --depth 1 -b "$PADAVAN_BRANCH" "$PADAVAN_REPO" &>> "$log_file"
-    _get_prebuilt_toolchain &>> "$log_file"
+    get_prebuilt_toolchain &>> "$log_file"
   fi
 
   # use predefined config
   if [[ -n $PADAVAN_CONFIG ]]; then
     cp "$PADAVAN_CONFIG" "$mnt/$project/trunk/.config"
   else
-    _prepare_build_config
+    prepare_build_config
   fi
 
-  _build_firmware
-  _copy_artifacts "$(_get_destination_path)"
+  build_firmware
+  copy_artifacts "$(get_destination_path)"
 
-  _log info "All done"
+  log info "All done"
 }
 
 
-trap _handle_exit EXIT
-_main
+trap handle_exit EXIT
+main
