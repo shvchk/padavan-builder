@@ -305,18 +305,23 @@ build_firmware() {
   log raw "Done"
 }
 
+get_latest_firmware() {
+  find "$mnt/$project/trunk/images" -type f -regextype posix-extended -iregex '.*\.(trx|bin)$' -printf "%T@\t%p\n" \
+  | sort -V | tail -1 | cut -f2
+}
+
 copy_artifacts() {
   _echo " Copying to $1"
 
   mkdir -p "$1"
-  cp -v "$mnt/$project"/trunk/images/*.trx "$1"
+  cp -v "$(get_latest_firmware)" "$1"
   cp -v "$mnt/$project/trunk/.config" "$1/${CONFIG_FIRMWARE_PRODUCT_ID}_$(date '+%Y.%m.%d_%H.%M.%S').config"
 }
 
 check_firmware_size() {
   partitions="$mnt/$project/trunk/configs/boards/$CONFIG_VENDOR/$CONFIG_FIRMWARE_PRODUCT_ID/partitions.config"
   max_fw_size="$(awk '/Firmware/ { getline; getline; sub(",", ""); print strtonum($2); }' "$partitions")"
-  fw_size="$(find "$mnt/$project/trunk/images" -iname "*.trx" -printf "%T@\t%s\n" | sort -V | tail -1 | cut -f2)"
+  fw_size="$(stat -c %s "$(get_latest_firmware)")"
 
   if ((fw_size > max_fw_size)); then
     fw_size_fmtd="$(numfmt --grouping "$fw_size") bytes"
