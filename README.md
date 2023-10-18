@@ -38,13 +38,11 @@ wget -qO- https://github.com/shvchk/padavan-builder/raw/main/build.sh | bash
 > [!WARNING]  
 > I recommend inspecting the [build.sh](build.sh) script before running it. It's a good practice before running any code on your machine, especially remote code.
 
-The script will do the following (manual steps in bold, everything else is automated):
+The script will do the following:
 
-- Create a [Podman](https://podman.io) container template (image) with all necessary dependencies
+- Run a [Podman](https://podman.io) container with all necessary dependencies
 
-- Get Padavan sources
-
-- Build the toolchain
+- Download Padavan firmware sources and prebuilt toolchain
 
 - **Ask you to select your router model**
 
@@ -54,31 +52,37 @@ The script will do the following (manual steps in bold, everything else is autom
 
   Edit config to your liking: uncomment (remove `#` at the beginning of the line) features you need, comment features you don't.
 
-  Text editor fully supports mouse, clipboard and common editing and navigation methods: `Ctrl + C`, `Ctrl + V`, `Ctrl + X`, `Ctrl + Z`, `Ctrl + F`, etc.
+  Text editor fully supports mouse, clipboard and common editing and navigation methods: `Ctrl + C`, `Ctrl + V`, `Ctrl + Z`, `Ctrl + F`, etc.
 
-  Save (`Ctrl + S`) and close (`Ctrl + Q`) the file when finished.
+  Changes are saved automatically. Close the file (`Ctrl + Q`) when finished.
 
 - Build the firmware in a temporary Podman container
 
-- Put the built firmware (`trx` file) in your home directory (Linux) or `C:/Users/Public/Downloads/padavan` (WSL)
+- Put the firmware (`trx` or `bin` file) and build config to your home directory (Linux) or Downloads directory (Windows)
 
 
-### Use another repository or branch
+It will ask you additional questions when neccessary, usually about reusing sources and binaries. You can make script completely automated and non-interactive, though, see [Advanced usage](#advanced-usage).
 
-By default, the script uses [gitlab.com/hadzhioglu/padavan-ng](https://gitlab.com/hadzhioglu/padavan-ng) repository and `master` branch. To use another repository and branch, you can pass it as a parameter to the script: `build.sh <repo_url> <branch>` or use `PADAVAN_REPO` and `PADAVAN_BRANCH` environment variables. Passed parameters have priority over env vars.
+Color coding of the script output:
 
-When running via a pipe, as we did initially, alternative repository and branch can be set like this:
+- blue background or no styling is used for informational messages
+- yellow background indicates warnings or something that may require user action
+- red background indicates errors
 
-```sh
-wget -qO- https://github.com/shvchk/padavan-builder/raw/main/build.sh | \
-bash -s -- https://example.com/anonymous/padavan dev
-```
 
-or
+### Advanced usage
 
-```sh
-PADAVAN_REPO=https://example.com/anonymous/padavan \
-PADAVAN_BRANCH=dev \
-wget -qO- https://github.com/shvchk/padavan-builder/raw/main/build.sh | bash
+You can alter script behaivor with variables, either set using `export` as an environment variables or in a file: `~/.config/padavan-builder` by default. All these variables and their default values are specified at the beginning of the [`build.sh`](build.sh) script.
 
-```
+Variable                 | Description
+-------------------------|------------------------------------------------------
+`PADAVAN_REPO`           | Firmware repository
+`PADAVAN_BRANCH`         | Firmware repository branch
+`PADAVAN_TOOLCHAIN_URL`  | Prebuilt toolchain URL
+`PADAVAN_IMAGE`          | Container image used to build the firmware
+`PADAVAN_CONFIG`         | Build config file path, allows to skip config editing
+`PADAVAN_EDITOR`         | Text editor, in case you don't like `micro`
+`PADAVAN_DEST`           | Path, where firmware should be copied after building
+`PADAVAN_REUSE`          | Set if script should save and reuse sources and binaries (`true`), or delete everything and start from scratch (`false`), allows to skip relevant questions. Reuse, especially binaries reuse, can drastically reduce time for subsequent builds
+`PADAVAN_UPDATE`         | If sources already exist and are reused, set if script should reset and update sources to the latest version (`true`), or proceed as is (`false`), allows to skip relevant question
+`PADAVAN_BUILDER_CONFIG` | Builder config file, where you can set any of the above variables in one place
