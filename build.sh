@@ -4,6 +4,7 @@ set -euo pipefail
 
 : "${PADAVAN_REPO:=https://gitlab.com/a-shevchuk/padavan-ng.git}"
 : "${PADAVAN_BRANCH:=master}"
+: "${PADAVAN_CONTAINERFILE:=${PADAVAN_REPO%.git}/raw/$PADAVAN_BRANCH/Dockerfile}"
 : "${PADAVAN_TOOLCHAIN_URL:=https://gitlab.com/api/v4/projects/a-shevchuk%2Fpadavan-ng/packages/generic/toolchain/latest/toolchain.tzst}"
 : "${PADAVAN_IMAGE:=registry.gitlab.com/a-shevchuk/padavan-ng}"
 : "${PADAVAN_BUILDER_CONFIG:=${XDG_CONFIG_HOME:-$HOME/.config}/padavan-builder}"
@@ -15,7 +16,6 @@ set -euo pipefail
 
 repo_suffix="${PADAVAN_REPO##*/}"
 project="${repo_suffix%.git}"
-img_name="padavan-builder"
 container="padavan-builder"
 disk_img="$container.btrfs"
 tmp_dir="$(mktemp -d)"
@@ -215,6 +215,12 @@ prepare() {
   $sudo chown -R "$USER:$USER" "$mnt" &>> "$log_file"
 }
 
+build_container() {
+  podman rmi -f "$container"
+  podman build -t "$container" -f "$PADAVAN_CONTAINERFILE" .
+  PADAVAN_IMAGE="localhost/$container"
+}
+
 ctnr_exec() {
   work_dir=$1; shift
   podman exec -w "$work_dir" "$container" "$@" &>> "$log_file"
@@ -235,6 +241,15 @@ reset_and_update_sources() {
   git status
   git pull
   popd
+}
+
+build_toolchain() {
+  log info "Building toolchain"
+  _echo " This will take a while, usually 20-60 minutes"
+  _echo "$log_follow_reminder"
+  ctnr_exec "/opt/$project/toolchain" ./clean_sources.sh &>> "$log_file"
+  ctnr_exec "/opt/$project/toolchain" ./build_toolchain.sh &>> "$log_file"
+  log raw "Done"
 }
 
 get_prebuilt_toolchain() {
@@ -371,6 +386,13 @@ main() {
   log_follow_reminder=" You can follow the log live in another terminal with ${accent} tail -f '$log_file' "
 
   prepare
+
+  if [[ $PADAVAN_BUILD_CONTAINER == true ]] \
+  || [[ $PADAVAN_BUILD_ALL_LOCALLY == true ]]; then
+    log info "Building container image"
+    build_container &>> "$log_file"
+  fi
+
   start_container
 
   if [[ -d $mnt/$project ]]; then
@@ -392,7 +414,13 @@ main() {
   else
     log info "Downloading sources and toolchain"
     ctnr_exec "" git clone --depth 1 -b "$PADAVAN_BRANCH" "$PADAVAN_REPO" &>> "$log_file"
-    get_prebuilt_toolchain &>> "$log_file"
+
+  if [[ $PADAVAN_BUILD_TOOLCHAIN == true ]] \
+  || [[ $PADAVAN_BUILD_ALL_LOCALLY == true ]]; then
+      build_toolchain
+    else
+      get_prebuilt_toolchain &>> "$log_file"
+    fi
   fi
 
   # use predefined config
