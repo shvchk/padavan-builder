@@ -87,7 +87,7 @@ Variable                     | Description
 `PADAVAN_DEST`               | Path, where firmware should be copied after building
 `PADAVAN_REUSE`              | Set if script should save and reuse sources and binaries (`true`), or delete everything and start from scratch (`false`), allows to skip relevant questions. Reuse, especially binaries reuse, can drastically reduce time for subsequent builds
 `PADAVAN_UPDATE`             | If sources already exist and are reused, set if script should reset and update sources to the latest version (`true`), or proceed as is (`false`), allows to skip relevant question
-`PADAVAN_PAUSE_BEFORE_BUILD` | Wait for user confirmation before build start. Useful if you want to do some manual edits before build
+`PADAVAN_PAUSE_BEFORE_BUILD` | Wait for user confirmation before build start (`true`). Useful if you want to do some manual edits before build
 `PADAVAN_BUILD_CONTAINER`    | Build container image locally (`true`) or use prebuilt container image (default)
 `PADAVAN_CONTAINERFILE`      | Containerfile / Dockerfile to be used to build container image locally
 `PADAVAN_BUILD_TOOLCHAIN`    | Build toolchain locally (`true`) or use prebuilt toolchain (default)
