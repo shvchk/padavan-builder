@@ -76,15 +76,19 @@ Color coding of the script output:
 
 You can alter script behaivor with variables, either set using `export` as an environment variables or in a file: `~/.config/padavan-builder` by default. All these variables and their default values are specified at the beginning of the [`build.sh`](build.sh) script.
 
-Variable                 | Description
--------------------------|------------------------------------------------------
-`PADAVAN_REPO`           | Firmware repository
-`PADAVAN_BRANCH`         | Firmware repository branch
-`PADAVAN_TOOLCHAIN_URL`  | Prebuilt toolchain URL
-`PADAVAN_IMAGE`          | Container image used to build the firmware
-`PADAVAN_CONFIG`         | Build config file path, allows to skip config editing
-`PADAVAN_EDITOR`         | Text editor, in case you don't like `micro`
-`PADAVAN_DEST`           | Path, where firmware should be copied after building
-`PADAVAN_REUSE`          | Set if script should save and reuse sources and binaries (`true`), or delete everything and start from scratch (`false`), allows to skip relevant questions. Reuse, especially binaries reuse, can drastically reduce time for subsequent builds
-`PADAVAN_UPDATE`         | If sources already exist and are reused, set if script should reset and update sources to the latest version (`true`), or proceed as is (`false`), allows to skip relevant question
-`PADAVAN_BUILDER_CONFIG` | Builder config file, where you can set any of the above variables in one place
+Variable                    | Description
+----------------------------|------------------------------------------------------
+`PADAVAN_REPO`              | Firmware repository
+`PADAVAN_BRANCH`            | Firmware repository branch
+`PADAVAN_TOOLCHAIN_URL`     | Prebuilt toolchain URL
+`PADAVAN_IMAGE`             | Container image used to build the firmware
+`PADAVAN_CONFIG`            | Build config file path, allows to skip config editing
+`PADAVAN_EDITOR`            | Text editor, in case you don't like `micro`
+`PADAVAN_DEST`              | Path, where firmware should be copied after building
+`PADAVAN_REUSE`             | Set if script should save and reuse sources and binaries (`true`), or delete everything and start from scratch (`false`), allows to skip relevant questions. Reuse, especially binaries reuse, can drastically reduce time for subsequent builds
+`PADAVAN_UPDATE`            | If sources already exist and are reused, set if script should reset and update sources to the latest version (`true`), or proceed as is (`false`), allows to skip relevant question
+`PADAVAN_BUILD_CONTAINER`   | Build container image locally (`true`) or use prebuilt container image (default)
+`PADAVAN_CONTAINERFILE`     | Containerfile / Dockerfile to be used to build container image locally
+`PADAVAN_BUILD_TOOLCHAIN`   | Build toolchain locally (`true`) or use prebuilt toolchain (default)
+`PADAVAN_BUILD_ALL_LOCALLY` | Build container image and toolchain locally (`true`) or use prebuilt (default)
+`PADAVAN_BUILDER_CONFIG`    | Builder config file, where you can set any of the above variables in one place
