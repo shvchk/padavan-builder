@@ -63,6 +63,8 @@ The script will do the following:
 
 It will ask you additional questions when neccessary, usually about reusing sources and binaries. You can make script completely automated and non-interactive, though, see [Advanced usage](#advanced-usage).
 
+Downloaded source code and produced binaries are stored in a compressed virtual disk file, so script only uses ~3 GB storage max. After build, you have an option to delete this virtual disk file, or keep it for later use.
+
 Color coding of the script output:
 
 - blue background or no styling is used for informational messages
