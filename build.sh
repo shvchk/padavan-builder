@@ -8,6 +8,10 @@ set -euo pipefail
 : "${PADAVAN_TOOLCHAIN_URL:=https://gitlab.com/api/v4/projects/a-shevchuk%2Fpadavan-ng/packages/generic/toolchain/latest/toolchain.tzst}"
 : "${PADAVAN_IMAGE:=registry.gitlab.com/a-shevchuk/padavan-ng}"
 : "${PADAVAN_BUILDER_CONFIG:=${XDG_CONFIG_HOME:-$HOME/.config}/padavan-builder}"
+: "${PADAVAN_BUILD_ALL_LOCALLY:=}"
+: "${PADAVAN_BUILD_CONTAINER:=}"
+: "${PADAVAN_BUILD_TOOLCHAIN:=}"
+: "${PADAVAN_PAUSE_BEFORE_BUILD:=}"
 : "${PADAVAN_CONFIG:=}"
 : "${PADAVAN_EDITOR:=}"
 : "${PADAVAN_DEST:=}"
@@ -433,6 +437,10 @@ main() {
   # get variables from build config
   # shellcheck disable=SC1090
   . <(grep "^CONFIG_" "$mnt/$project/trunk/.config")
+
+
+  [[ $PADAVAN_PAUSE_BEFORE_BUILD == true ]] \
+  && read -rsp " Press ${warn_msg} Enter ${normal} to start build" < /dev/tty; echo
 
   build_firmware
   copy_artifacts "$(get_destination_path)"
