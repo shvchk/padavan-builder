@@ -439,8 +439,10 @@ main() {
   . <(grep "^CONFIG_" "$mnt/$project/trunk/.config")
 
 
-  [[ $PADAVAN_PAUSE_BEFORE_BUILD == true ]] \
-  && read -rsp " Press ${warn_msg} Enter ${normal} to start build" < /dev/tty; echo
+  if [[ $PADAVAN_PAUSE_BEFORE_BUILD == true ]]; then
+    _echo " Source code is in ${accent} $mnt/$project "
+    read -rsp " Press ${warn_msg} Enter ${normal} to start build" < /dev/tty; echo
+  fi
 
   build_firmware
   copy_artifacts "$(get_destination_path)"
