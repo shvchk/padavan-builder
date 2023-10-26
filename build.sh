@@ -227,7 +227,7 @@ build_container() {
 
 ctnr_exec() {
   work_dir=$1; shift
-  podman exec -w "$work_dir" "$container" "$@" &>> "$log_file"
+  podman exec -w "$work_dir" "$container" "$@"
 }
 
 start_container() {
@@ -239,12 +239,10 @@ start_container() {
 }
 
 reset_and_update_sources() {
-  pushd "$mnt/$project"
-  git reset --hard
-  git clean -dfx
-  git status
-  git pull
-  popd
+  ctnr_exec "/opt/$project" git reset --hard
+  ctnr_exec "/opt/$project" git clean -dfx
+  ctnr_exec "/opt/$project" git status
+  ctnr_exec "/opt/$project" git pull
 }
 
 build_toolchain() {
