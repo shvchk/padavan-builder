@@ -279,10 +279,11 @@ prepare_build_config() {
                                           " Double click or Enter to confirm")
 
   configs_glob="$mnt/$project/trunk/configs/templates/*/*config"
-  configs_glob_slashes=${configs_glob//[^\/]/} # used to tell fzf how much of the path to skip
+  header_pos="--header-first"
+  echo -e "0.28\n$(fzf --version)" | sort -CV || header_pos=""
   config_file="$(find "$mnt/$project" -type f -path "$configs_glob" | \
-                fzf +m -e -d / --with-nth ${#configs_glob_slashes}.. \
-                --reverse --no-info --bind=esc:ignore --header-first --header "$config_selection_header")"
+                fzf +m -e -d / --with-nth -2.. --bind=esc:ignore --reverse \
+                --no-info --header "$config_selection_header" $header_pos)"
 
   cp "$config_file" "$mnt/$project/trunk/.config"
 
@@ -411,7 +412,7 @@ main() {
       ctnr_exec "/opt/$project/trunk" make -C user/shared clean &>> "$log_file"
     else
       log info "Cleaning"
-      ctnr_exec "/opt/$project/trunk" ./clear_tree.sh &>> "$log_file"
+      ctnr_exec "/opt/$project/trunk" ./clear_tree.sh &>> "$log_file" || :
     fi
   else
     log info "Downloading sources and toolchain"
