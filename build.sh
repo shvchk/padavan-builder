@@ -407,9 +407,9 @@ main() {
       get_prebuilt_toolchain &>> "$log_file"
     elif decide_reuse_compiled; then
       log info "Cleaning only neccessary files"
-      ctnr_exec "/opt/$project/trunk" make -C user/httpd clean &>> "$log_file"
-      ctnr_exec "/opt/$project/trunk" make -C user/rc clean &>> "$log_file"
-      ctnr_exec "/opt/$project/trunk" make -C user/shared clean &>> "$log_file"
+      for t in httpd rc shared; do
+        ctnr_exec "/opt/$project/trunk" make -C user/$t clean &>> "$log_file"
+      done
     else
       log info "Cleaning"
       ctnr_exec "/opt/$project/trunk" ./clear_tree.sh &>> "$log_file" || :
