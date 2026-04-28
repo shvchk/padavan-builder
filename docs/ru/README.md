@@ -1,4 +1,4 @@
-<p align="right"><a href="README.md">English</a> | Русский</p>
+<p align="right"><a href="..#readme">English</a> | Русский</p>
 
 ## Padavan builder
 
@@ -9,24 +9,24 @@
 <details>
   <summary>Полный вывод скрипта</summary>
 
-  ![Полный вывод скрипта](misc/screenshots/main.webp)
+  ![Полный вывод скрипта](../misc/screenshots/main.webp)
 </details>
 
 <details>
   <summary>Выбор конфига сборки</summary>
 
-  ![Выбор конфига сборки](misc/screenshots/select-config.webp)
+  ![Выбор конфига сборки](../misc/screenshots/select-config.webp)
 </details>
 
 <details>
   <summary>Редактирование конфига сборки</summary>
 
-  ![Редактирование конфига сборки](misc/screenshots/edit-config.webp)
+  ![Редактирование конфига сборки](../misc/screenshots/edit-config.webp)
 </details>
 
 **Видео, ⏱️ ~3 min:**
 
-[![Видео](misc/screenshots/video-preview.webp)](https://youtu.be/AX7YRaR9CBw)
+[![Видео](../misc/screenshots/video-preview.webp)](https://youtu.be/AX7YRaR9CBw)
 
 
 ### Использование
@@ -36,7 +36,7 @@ wget -qO- https://github.com/shvchk/padavan-builder/raw/main/build.sh | bash
 ```
 
 > [!WARNING]  
-> Рекомендую проверить скрипт [build.sh](build.sh) перед запуском. Это хорошая практика перед запуском любого кода на вашем компьютере, особенно удалённого кода.
+> Рекомендую проверить скрипт [build.sh](../../build.sh) перед запуском. Это хорошая практика перед запуском любого кода на вашем компьютере, особенно удалённого кода.
 
 Скрипт делает следующее:
 
@@ -73,7 +73,7 @@ wget -qO- https://github.com/shvchk/padavan-builder/raw/main/build.sh | bash
 
 ### Дополнительные возможности
 
-Вы можете изменить поведение скрипта, используя переменные, заданные либо с помощью `export` как переменные окружения, либо в файле: по умолчанию `~/.config/padavan-builder`. Все эти переменные и их значения по умолчанию указаны в начале скрипта [`build.sh`](build.sh).
+Вы можете изменить поведение скрипта, используя переменные, заданные либо с помощью `export` как переменные окружения, либо в файле: по умолчанию `~/.config/padavan-builder`. Все эти переменные и их значения по умолчанию указаны в начале скрипта [`build.sh`](../../build.sh).
 
 Переменная                   | Оисание
 -----------------------------|------------------------------------------------------

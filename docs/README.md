@@ -1,4 +1,4 @@
-<p align="right">English | <a href="README.ru.md">Русский</a></p>
+<p align="right">English | <a href="ru#readme">Русский</a></p>
 
 ## Padavan builder
 
@@ -36,7 +36,7 @@ wget -qO- https://github.com/shvchk/padavan-builder/raw/main/build.sh | bash
 ```
 
 > [!WARNING]  
-> I recommend inspecting the [build.sh](build.sh) script before running it. It's a good practice before running any code on your machine, especially remote code.
+> I recommend inspecting the [build.sh](../build.sh) script before running it. It's a good practice before running any code on your machine, especially remote code.
 
 The script will do the following:
 
@@ -74,7 +74,7 @@ Color coding of the script output:
 
 ### Advanced usage
 
-You can alter script behaivor with variables, either set using `export` as an environment variables or in a file: `~/.config/padavan-builder` by default. All these variables and their default values are specified at the beginning of the [`build.sh`](build.sh) script.
+You can alter script behaivor with variables, either set using `export` as an environment variables or in a file: `~/.config/padavan-builder` by default. All these variables and their default values are specified at the beginning of the [`build.sh`](../build.sh) script.
 
 Variable                     | Description
 -----------------------------|------------------------------------------------------
